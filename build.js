@@ -2,8 +2,8 @@
 const fs = require('fs'), path = require('path');
 const R = (f) => fs.readFileSync(path.join(__dirname, f), 'utf8');
 const SITE_URL = process.env.SITE_URL || 'https://retirelab.example.com';
-const engine = R('src/engine.js');
-const app = R('src/app.html').replace('/*__ENGINE__*/', () => engine);
+const engine = R('src/engine.js'), portfolio = R('src/portfolio.js');
+const app = R('src/app.html').replace('/*__ENGINE__*/', () => engine).replace('/*__PORTFOLIO__*/', () => portfolio);
 const fonts = '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap">';
 const desc = '현재 자산과 월 투자금으로 몇 살에 은퇴할 수 있는지, ISA·연금저축·IRP를 어떻게 나눠야 세후 자산이 더 남는지 계산하는 무료 은퇴 시뮬레이터.';
 const favicon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#17324d"/><path d="M14 46 L28 32 L36 38 L50 20" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="50" cy="20" r="4" fill="#1baf7a"/></svg>';

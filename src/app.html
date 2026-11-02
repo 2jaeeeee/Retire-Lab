@@ -4,7 +4,7 @@
   --bg: #f3f5f7; --surface: #ffffff; --surface-2: #f8f9fb;
   --ink: #13202c; --ink-2: #4a5866; --muted: #6f7b88; --line: #e0e5ea;
   --accent: #17324d; --accent-ink: #ffffff; --accent-soft: #e6edf4;
-  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s7: #6250d6; --s-principal: #9aa5b1;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s-principal: #9aa5b1;
   --good: #1a7f4b; --good-bg: #e3f3ea; --warn: #9a5b00; --warn-bg: #fbf0dc; --crit: #c2362f; --crit-bg: #fae6e4;
   --font: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
@@ -13,13 +13,13 @@
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --bg: #0e1318; --surface: #151c23; --surface-2: #1a222a; --ink: #e7ecf1; --ink-2: #aab5c0; --muted: #85909b; --line: #26313b;
   --accent: #9cc3ea; --accent-ink: #0e1318; --accent-soft: #1e2b38;
-  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s7: #9085e9; --s-principal: #6b7783;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s-principal: #6b7783;
   --good: #5cc48d; --good-bg: #16302a; --warn: #e2a64a; --warn-bg: #33281a; --crit: #ef7a73; --crit-bg: #3a1f1e;
   color-scheme: dark; } }
 :root[data-theme="dark"] {
   --bg: #0e1318; --surface: #151c23; --surface-2: #1a222a; --ink: #e7ecf1; --ink-2: #aab5c0; --muted: #85909b; --line: #26313b;
   --accent: #9cc3ea; --accent-ink: #0e1318; --accent-soft: #1e2b38;
-  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s7: #9085e9; --s-principal: #6b7783;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s-principal: #6b7783;
   --good: #5cc48d; --good-bg: #16302a; --warn: #e2a64a; --warn-bg: #33281a; --crit: #ef7a73; --crit-bg: #3a1f1e;
   color-scheme: dark; }
 
@@ -89,8 +89,9 @@ button { font: inherit; cursor: pointer; }
 .pill.crit { color: var(--crit); background: var(--crit-bg); }
 .pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: none; }
 
-.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
-@media (max-width: 760px) { .kpis:has(.kpi:nth-child(5)) .kpi:first-child { grid-column: 1 / -1; } }
+.kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+@media (min-width: 761px) { .kpis:has(.kpi:nth-child(5)):not(:has(.kpi:nth-child(6))) .kpi:last-child { grid-column: span 2; } }
+@media (max-width: 760px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .kpis:has(.kpi:nth-child(5)):not(:has(.kpi:nth-child(6))) .kpi:first-child { grid-column: 1 / -1; } }
 .kpi { background: var(--surface); padding: 16px 18px; display: grid; gap: 4px; align-content: start; }
 .kpi .k { font-size: 12px; color: var(--muted); font-weight: 500; }
 .kpi .v { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
@@ -133,6 +134,27 @@ td .ph { font-size: 11px; color: var(--muted); margin-left: 6px; }
 .cmp-summary { margin: 0 0 12px; font-size: 14px; color: var(--ink); line-height: 1.6; }
 .cmp-summary b { font-weight: 600; }
 
+.pfinfo { display: grid; gap: 5px; font-size: 12px; color: var(--ink-2); }
+.wbar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; gap: 2px; background: var(--surface); }
+.wbar span { display: block; height: 100%; }
+.wtxt { display: flex; flex-wrap: wrap; gap: 2px 10px; }
+.wtxt span { display: inline-flex; align-items: center; gap: 4px; }
+.wtxt i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+.pfstat { color: var(--ink); font-variant-numeric: tabular-nums; }
+.pfstat b { font-weight: 600; }
+.custombox { display: grid; gap: 10px; padding: 12px; border: 1px dashed var(--line); border-radius: 8px; }
+.pf td:first-child { white-space: normal; min-width: 200px; }
+.pf td .nm { font-weight: 600; color: var(--ink); }
+.pf td .tg { font-size: 12px; color: var(--muted); display: block; margin-bottom: 5px; }
+.pf tr.sel td { background: var(--accent-soft); }
+.pf .btn { padding: 5px 10px; font-size: 12px; }
+.pf .btn[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.prob { font-weight: 700; }
+.prob.good { color: var(--good); } .prob.warn { color: var(--warn); } .prob.crit { color: var(--crit); }
+.prob small { display: block; font-weight: 400; font-size: 11px; color: var(--muted); }
+.notes table { font-size: 12px; }
+.notes td:first-child, .notes th:first-child { position: static; }
+.notes td { white-space: normal; vertical-align: top; }
 .notes { font-size: 13px; color: var(--ink-2); display: grid; gap: 8px; }
 .notes h3 { margin: 8px 0 0; font-size: 13px; color: var(--ink); }
 .notes ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
@@ -224,21 +246,27 @@ footer.site a { color: var(--ink-2); }
       </details>
 
       <details class="step" open>
-        <summary><span class="n">4</span>투자 가정<span class="sub" id="sum4"></span></summary>
+        <summary><span class="n">4</span>포트폴리오<span class="sub" id="sum4"></span></summary>
         <div class="fields">
-          <div class="row2">
-            <div class="f"><label for="retPre">은퇴 전 수익률</label><div class="unitbox"><input id="retPre" type="number" inputmode="decimal" step="0.5"><span class="u">%/년</span></div></div>
-            <div class="f"><label for="retPost">은퇴 후 수익률</label><div class="unitbox"><input id="retPost" type="number" inputmode="decimal" step="0.5"><span class="u">%/년</span></div></div>
+          <div class="f"><label for="pfPre">은퇴 전 포트폴리오</label><div class="unitbox"><select id="pfPre"></select></div><div class="pfinfo" id="pfPreInfo"></div></div>
+          <div class="f"><label for="pfPost">은퇴 후 포트폴리오</label><div class="unitbox"><select id="pfPost"></select></div><div class="pfinfo" id="pfPostInfo"></div>
+            <span class="hint">은퇴 후에는 하락장에도 생활비를 위해 팔아야 하므로, 변동성이 낮은 구성으로 바꾸는 경우가 많습니다.</span></div>
+          <div class="custombox" id="customBox" hidden>
+            <span class="lbl">직접 입력</span>
+            <div class="row2">
+              <div class="f" id="fRetPre"><label for="retPre">은퇴 전 수익률</label><div class="unitbox"><input id="retPre" type="number" inputmode="decimal" step="0.5"><span class="u">%/년</span></div></div>
+              <div class="f" id="fRetPost"><label for="retPost">은퇴 후 수익률</label><div class="unitbox"><input id="retPost" type="number" inputmode="decimal" step="0.5"><span class="u">%/년</span></div></div>
+            </div>
+            <div class="f"><label for="divYield">배당수익률 <span class="opt">총수익률 중 현금 분배분</span></label><div class="unitbox"><input id="divYield" type="number" inputmode="decimal" step="0.1"><span class="u">%/년</span></div></div>
+            <span class="hint">배당을 포함한 원화 기준 명목 총수익률. 직접 입력한 수익률은 변동성을 알 수 없어 성공 확률을 계산하지 않습니다.</span>
           </div>
-          <span class="hint">배당을 포함한 원화 기준 명목 총수익률. 은퇴 후에는 채권·현금 비중을 늘린다고 보고 낮게 잡는 것이 일반적입니다.</span>
           <div class="row2">
             <div class="f"><label for="inflation">물가상승률</label><div class="unitbox"><input id="inflation" type="number" inputmode="decimal" step="0.1"><span class="u">%/년</span></div></div>
             <div class="f" data-show="simple"><label for="fee">연 비용률</label><div class="unitbox"><input id="fee" type="number" inputmode="decimal" step="0.05"><span class="u">%/년</span></div></div>
             <div class="f" data-show="acct"><label for="feeAcct">연 보수·비용</label><div class="unitbox"><input id="feeAcct" type="number" inputmode="decimal" step="0.05"><span class="u">%/년</span></div></div>
           </div>
-          <span class="hint" data-show="simple">비용률: 보수·환전비용·배당세 등으로 매년 수익률에서 빠지는 몫.</span>
+          <span class="hint" data-show="simple">비용률: 보수·환전비용·세금 등으로 매년 수익률에서 빠지는 몫.</span>
           <span class="hint" data-show="acct">보수·환전비용만 넣으세요. 세금은 계좌별로 따로 계산합니다.</span>
-          <div class="f"><label for="divYield">배당수익률 <span class="opt">총수익률 중 현금 분배분</span></label><div class="unitbox"><input id="divYield" type="number" inputmode="decimal" step="0.1"><span class="u">%/년</span></div><span class="hint">총수익률에 이미 포함된 값이라 따로 더하지 않습니다. 일반계좌 배당세 계산과 생활비 출처 구분에 씁니다.</span></div>
         </div>
       </details>
 
@@ -257,6 +285,13 @@ footer.site a { color: var(--ink-2); }
       </section>
 
       <section class="kpis" id="kpis"></section>
+
+      <section class="card">
+        <div class="card-h"><h2>포트폴리오별 은퇴 가능성</h2><span class="cap" id="capPf"></span></div>
+        <div class="tablewrap" style="max-height:none"><table class="pf">
+          <thead><tr><th>포트폴리오 <span style="font-weight:400">(은퇴 전)</span></th><th>기대수익률</th><th>변동성</th><th>나쁜 해<br><span style="font-weight:400">20년에 1번</span></th><th>은퇴 가능 나이<br><span style="font-weight:400">기대수익률대로</span></th><th id="pfColProb"></th><th></th></tr></thead>
+          <tbody id="pfBody"></tbody></table></div>
+      </section>
 
       <section class="card">
         <div class="card-h">
@@ -303,10 +338,18 @@ footer.site a { color: var(--ink-2); }
 
       <section class="card notes">
         <h2 style="margin:0;font-size:16px">계산 방식과 한계</h2>
+        <h3>포트폴리오 기대수익률은 어떻게 정했나</h3>
+        <ul>
+          <li>자산별 기대수익률은 J.P. Morgan의 장기 자본시장 전망(2027년판, 2026년 10월 발표, 향후 10~15년, 달러 기준)을 따릅니다. 변동성과 자산 간 상관관계는 같은 전망의 2026년판 표를 씁니다. 과거 수익률을 그대로 미래에 늘려 쓰지 않습니다.</li>
+          <li>포트폴리오 기대수익률은 매년 한 번 비중을 원래대로 맞춘다고 보고, 변동성 때문에 깎이는 몫(분산 손실)을 뺀 연복리입니다.</li>
+          <li>'나쁜 해'는 이 가정에서 20년에 한 번 꼴로 나올 수 있는 연 수익률입니다. 실제 시장은 이보다 극단적일 수 있습니다. 2008년 S&amp;P 500은 약 −37%였습니다.</li>
+          <li>'성공 확률'은 자산별 수익률이 해마다 무작위로 오르내리는 400가지 경로를 만들어, 종료 나이까지 자산이 바닥나지 않은 경로의 비율입니다. 같은 입력이면 항상 같은 결과가 나옵니다. 물가상승률과 환율은 고정입니다.</li>
+        </ul>
+        <div class="tablewrap" style="max-height:none"><table><thead><tr><th>자산 (예시 ETF)</th><th>기대수익률</th><th>변동성</th><th>분배율(약)</th><th style="text-align:left">근거</th></tr></thead><tbody id="assetBody"></tbody></table></div>
         <h3>공통 규칙</h3>
         <ul>
           <li>월 단위로 계산합니다. 매월 초에 납입(은퇴 전) 또는 생활비 인출(은퇴 후)을 하고, 남은 자산에 그 달의 수익이 붙습니다. 월 수익률은 <code>(1 + 연수익률 − 비용률)^(1/12) − 1</code>입니다.</li>
-          <li>입력한 수익률은 배당을 포함한 명목 총수익률입니다. 배당은 이 안의 일부로만 보고 따로 더하지 않습니다.</li>
+          <li>수익률은 배당을 포함한 명목 총수익률입니다. 배당은 이 안의 일부로만 보고 따로 더하지 않습니다. 기대수익률은 달러 기준이며 장기 환율 변동은 반영하지 않습니다.</li>
           <li>생활비와 국민연금은 현재 가치로 입력받아 매년 물가상승률만큼 늘립니다. 국민연금은 수령 시작 나이부터 생활비에서 먼저 차감합니다.</li>
           <li>'은퇴 가능 나이'는 그 나이에 납입을 멈추고 인출을 시작했을 때 종료 나이까지 자산이 바닥나지 않는 가장 이른 나이입니다. 연 생활비의 25배 같은 단순 규칙은 쓰지 않습니다.</li>
           <li>'현재 가치'는 미래 금액을 물가상승률로 할인한 오늘 기준 구매력이고, '미래 명목'은 그 해에 실제로 찍힐 금액입니다.</li>
@@ -332,7 +375,7 @@ footer.site a { color: var(--ink-2); }
         <h3>공통 한계</h3>
         <ul>
           <li>수익률 변동과 수익률 순서 위험(은퇴 직후 하락장). 고정 수익률은 평균적인 경로 하나일 뿐이며, 실제 자산은 이보다 크게 출렁입니다.</li>
-          <li>환율 변동. 미국 ETF 수익률은 원화 기준으로 입력해야 합니다.</li>
+          <li>환율 변동. 원화로 환산하면 달러 기준 수익률보다 오르내림이 커지거나 작아질 수 있습니다.</li>
         </ul>
         <p class="disclaimer">이 결과는 입력한 가정을 바탕으로 한 추정치이며, 투자 권유나 미래 수익 보장이 아닙니다. 세금 계산은 단순화한 것으로 실제 세액과 다를 수 있으니, 실제 신고·인출 전에는 금융회사나 세무 전문가에게 확인하세요. 투자 원금 손실이 발생할 수 있습니다.</p>
       </section>
@@ -353,12 +396,17 @@ footer.site a { color: var(--ink-2); }
 /*__ENGINE__*/
 </script>
 <script>
+/*__PORTFOLIO__*/
+</script>
+<script>
 (() => {
-  const E = window.RetireEngine;
+  const E = window.RetireEngine, PF = window.RetirePortfolio;
+  const ACOL = { SPY: '--s1', QQQ: '--s2', SCHD: '--s3', IEF: '--s4', TLT: '--s5', SGOV: '--s6', GLD: '--s7' };
+  const MC_N = 400;
   const DEFAULTS = { mode: 'acct', curAge: 35, retAge: 50, endAge: 95, salary: 7000,
     assets: 15000, monthly: 200, contribGrowth: 3, fee: 0.4,
     bGen: 8000, bIsa: 3000, bSav: 3000, bIrp: 1000, mGen: 75, mIsa: 50, mSav: 50, mIrp: 25,
-    isaType: 'general', isaMode: 'pension', refundReinvest: true, feeAcct: 0.2,
+    isaType: 'general', isaMode: 'pension', refundReinvest: true, feeAcct: 0.2, pfPre: 'sp500', pfPost: 'balanced',
     expense: 300, pension: 100, pensionAge: 65, retPre: 7, retPost: 5, inflation: 2.5, divYield: 1.5 };
   const NUM = ['curAge','retAge','endAge','salary','assets','monthly','contribGrowth','fee','bGen','bIsa','bSav','bIrp','mGen','mIsa','mSav','mIrp','feeAcct','expense','pension','pensionAge','retPre','retPost','inflation','divYield'];
   const STORE = 'retirelab.v2';
@@ -376,9 +424,13 @@ footer.site a { color: var(--ink-2); }
   const fmtLong = (v) => { if (!isFinite(v)) return ''; const eok = Math.floor(v / 10000), man = Math.round(v - eok * 10000); return '= ' + (eok ? eok.toLocaleString('ko-KR') + '억 ' : '') + (man || !eok ? man.toLocaleString('ko-KR') + '만원' : '원'); };
 
   // ---------- 입력 ----------
+  const pfOpts = (withSame) => (withSame ? '<option value="same">은퇴 전과 같게</option>' : '') + PF.PRESETS.map(x => `<option value="${x.id}">${x.name} · ${x.tag}</option>`).join('') + '<option value="custom">직접 수익률 입력</option>';
+  $('pfPre').innerHTML = pfOpts(false); $('pfPost').innerHTML = pfOpts(true);
+  const pfStat = {}; PF.PRESETS.forEach(x => { pfStat[x.id] = PF.stats(x.w); });
   function apply(p) {
     NUM.forEach(k => { $(k).value = p[k]; });
     $('contribGrowth2').value = p.contribGrowth;
+    $('pfPre').value = p.pfPre; $('pfPost').value = p.pfPost; if (!$('pfPre').value) $('pfPre').value = 'sp500'; if (!$('pfPost').value) $('pfPost').value = 'same';
     $('isaType').value = p.isaType; $('isaMode').value = p.isaMode; $('refundReinvest').checked = !!p.refundReinvest;
     setMode(p.mode || 'acct', false);
   }
@@ -389,12 +441,19 @@ footer.site a { color: var(--ink-2); }
     NUM.forEach(k => { p[k] = parseFloat($(k).value); });
     if (mode === 'acct') p.contribGrowth = parseFloat($('contribGrowth2').value);
     p.isaType = $('isaType').value; p.isaMode = $('isaMode').value; p.refundReinvest = $('refundReinvest').checked;
+    p.pfPre = $('pfPre').value; p.pfPost = $('pfPost').value;
+    const postId = p.pfPost === 'same' ? p.pfPre : p.pfPost;
+    p.postId = postId;
+    if (p.pfPre !== 'custom') { const st = pfStat[p.pfPre]; p.retPre = +st.ret.toFixed(2); p.divYield = +st.div.toFixed(2); }
+    if (postId !== 'custom') { const st = pfStat[postId]; p.retPost = +st.ret.toFixed(2); p.divYieldPost = +st.div.toFixed(2); }
+    else p.divYieldPost = p.divYield;
+    p.stochastic = p.pfPre !== 'custom' && postId !== 'custom';
     return p;
   }
   function validate(p) {
     const errs = [], bad = new Set();
     const need = (k, msg, ok) => { if (!ok) { errs.push(msg); bad.add(k); } };
-    const keys = ['curAge','retAge','endAge','expense','pension','pensionAge','retPre','retPost','inflation','divYield','contribGrowth']
+    const keys = ['curAge','retAge','endAge','expense','pension','pensionAge','inflation','contribGrowth'].concat(p.pfPre === 'custom' ? ['retPre','divYield'] : [], p.postId === 'custom' ? ['retPost','divYield'] : [])
       .concat(mode === 'simple' ? ['assets','monthly','fee'] : ['salary','bGen','bIsa','bSav','bIrp','mGen','mIsa','mSav','mIrp','feeAcct']);
     keys.forEach(k => { if (!isFinite(p[k])) { bad.add(k === 'contribGrowth' && mode === 'acct' ? 'contribGrowth2' : k); } });
     if (bad.size) return { errs: ['비어 있거나 숫자가 아닌 칸이 있습니다.'], bad };
@@ -404,10 +463,10 @@ footer.site a { color: var(--ink-2); }
     need('expense', '월 생활비는 0보다 커야 합니다.', p.expense > 0);
     need('pension', '국민연금 예상액은 0 이상이어야 합니다.', p.pension >= 0);
     need('pensionAge', '국민연금 수령 나이는 55~75세 사이로 입력하세요.', p.pensionAge >= 55 && p.pensionAge <= 75);
-    need('retPre', '수익률은 −5%~20% 사이로 입력하세요.', p.retPre >= -5 && p.retPre <= 20);
-    need('retPost', '수익률은 −5%~20% 사이로 입력하세요.', p.retPost >= -5 && p.retPost <= 20);
+    if (p.pfPre === 'custom') need('retPre', '수익률은 −5%~20% 사이로 입력하세요.', p.retPre >= -5 && p.retPre <= 20);
+    if (p.postId === 'custom') need('retPost', '수익률은 −5%~20% 사이로 입력하세요.', p.retPost >= -5 && p.retPost <= 20);
     need('inflation', '물가상승률은 0~10% 사이로 입력하세요.', p.inflation >= 0 && p.inflation <= 10);
-    need('divYield', '배당수익률은 0 이상이고 총수익률보다 클 수 없습니다.', p.divYield >= 0 && p.divYield <= Math.max(p.retPre, p.retPost, 0) + 1e-9);
+    if (p.pfPre === 'custom' || p.postId === 'custom') need('divYield', '배당수익률은 0 이상이고 총수익률보다 클 수 없습니다.', p.divYield >= 0 && p.divYield <= Math.max(p.retPre, p.retPost, 0) + 1e-9);
     need(mode === 'acct' ? 'contribGrowth2' : 'contribGrowth', '투자금 증가율은 0~20% 사이로 입력하세요.', p.contribGrowth >= 0 && p.contribGrowth <= 20);
     if (mode === 'simple') {
       need('assets', '현재 자산은 0 이상이어야 합니다.', p.assets >= 0);
@@ -474,14 +533,20 @@ footer.site a { color: var(--ink-2); }
     box.hidden = true;
     save(p); hints(p);
     last = buildModel(p);
-    renderVerdict(); renderKpis(); renderCharts(); renderCompare(); renderSens(); renderTable();
+    renderVerdict(); renderKpis(); renderCharts(); renderCompare(); renderSens(); renderTable(); renderPf();
+    runMC(last);
   }
 
   function hints(p) {
     document.querySelectorAll('[data-money]').forEach(el => { el.textContent = fmtLong(p[el.dataset.money]); });
     $('sum1').textContent = `${p.curAge}세 → ${p.retAge}세`;
     $('sum3').textContent = `월 ${fmt(p.expense)}`;
-    $('sum4').textContent = `${p.retPre}% / ${p.retPost}%`;
+    const nm = (id) => id === 'custom' ? '직접 입력' : PF.byId(id).name;
+    $('sum4').textContent = p.pfPre === p.postId ? nm(p.pfPre) : `${nm(p.pfPre)} → ${nm(p.postId)}`;
+    $('pfPreInfo').innerHTML = pfInfo(p.pfPre);
+    $('pfPostInfo').innerHTML = p.pfPost === 'same' ? '' : pfInfo(p.pfPost);
+    $('customBox').hidden = !(p.pfPre === 'custom' || p.postId === 'custom');
+    $('fRetPre').hidden = p.pfPre !== 'custom'; $('fRetPost').hidden = p.postId !== 'custom';
     if (p.mode === 'simple') { $('sum2').textContent = `${fmt(p.assets)} · 월 ${fmt(p.monthly)}`; return; }
     const B = p.bGen + p.bIsa + p.bSav + p.bIrp, M = p.mGen + p.mIsa + p.mSav + p.mIrp;
     $('sum2').textContent = `${fmt(B)} · 월 ${fmt(M)}`;
@@ -496,6 +561,16 @@ footer.site a { color: var(--ink-2); }
     $('limitHint').textContent = msgs.join(' ');
   }
 
+  function wbar(w) {
+    const ent = Object.entries(w);
+    return `<div class="wbar">${ent.map(([k, v]) => `<span style="flex:${v};background:var(${ACOL[k]})"></span>`).join('')}</div>`
+      + `<div class="wtxt">${ent.map(([k, v]) => `<span><i style="background:var(${ACOL[k]})"></i>${k} ${v}%</span>`).join('')}</div>`;
+  }
+  function pfInfo(id) {
+    if (id === 'custom' || id === 'same') return '';
+    const x = PF.byId(id), st = pfStat[id];
+    return wbar(x.w) + `<span class="pfstat">기대수익률 <b>${st.ret.toFixed(1)}%</b> · 변동성 ${st.vol.toFixed(1)}% · 나쁜 해 ${st.bad.toFixed(0)}% · 분배율 ${st.div.toFixed(1)}%</span>`;
+  }
   function current() {
     const { p, earliest, target, sim } = last;
     if (view.basis === 'earliest' && earliest != null && earliest !== p.retAge) return { s: sim(earliest), R: earliest };
@@ -511,7 +586,7 @@ footer.site a { color: var(--ink-2); }
     } else {
       t.innerHTML = earliest === p.curAge
         ? `지금 바로 은퇴해도 월 ${fmt(p.expense, true)}(현재 가치)로 <em>${p.endAge}세까지</em> 생활할 수 있습니다.`
-        : `지금처럼 투자하면 <em>${earliest}세</em>에 은퇴할 수 있습니다. 월 ${fmt(p.expense, true)}(현재 가치)을 쓰며 ${p.endAge}세까지 자산이 유지됩니다.`;
+        : `지금처럼 투자하면 <em>${earliest}세</em>에 은퇴할 수 있습니다. 월 ${fmt(p.expense, true)}(현재 가치)을 쓰며 ${p.endAge}세까지 자산이 유지됩니다.` + (p.stochastic ? ' <span style="font-size:14px;font-weight:400;color:var(--ink-2)">(기대수익률대로 갈 때)</span>' : '');
       const diff = p.retAge - earliest;
       if (diff > 0) pills.push(['good', `목표(${p.retAge}세)보다 ${diff}년 빠름`]);
       else if (diff === 0) pills.push(['good', `목표 ${p.retAge}세 달성 가능`]);
@@ -521,7 +596,8 @@ footer.site a { color: var(--ink-2); }
       if (target.earlyPensionUsed) pills.push(['warn', `${p.retAge}세 은퇴 시 55세 전에 연금계좌를 꺼내야 함 (기타소득세 16.5%)`]);
       if (target.finIncomeWarn) pills.push(['warn', '일반계좌 배당이 연 2,000만원을 넘는 해 있음 · 금융소득종합과세 미반영']);
     }
-    $('verdictPills').innerHTML = pills.map(([c, x]) => `<span class="pill ${c}">${x}</span>`).join('');
+    if (p.stochastic) pills.push(['', '<span id="probPill">수익률 변동을 반영한 성공 확률 계산 중…</span>']);
+    $('verdictPills').innerHTML = pills.map(([c, x]) => `<span class="pill ${c}" ${c ? '' : 'id="probPillWrap"'}>${x}</span>`).join('');
   }
 
   function renderKpis() {
@@ -552,6 +628,7 @@ footer.site a { color: var(--ink-2); }
         { k: `${p.retAge}세 은퇴 시 쓸 수 있는 생활비`, v: isFinite(m.maxE) ? fmt(m.maxE) : '–', u: '원/월', d: `${p.endAge}세까지 유지되는 최대치 · 현재 가치` },
       ];
     }
+    if (p.stochastic) k.splice(1, 0, { k: `${p.retAge}세 은퇴 성공 확률`, v: '<span id="kProb">…</span>', u: '', d: '<span id="kProbD">수익률 변동 400가지 경로로 계산 중</span>' });
     $('kpis').innerHTML = k.map(x => `<div class="kpi"><span class="k">${x.k}</span><span class="v">${x.v}${x.u ? `<small>${x.u}</small>` : ''}</span><span class="d">${x.d}</span></div>`).join('');
   }
 
@@ -693,8 +770,8 @@ footer.site a { color: var(--ink-2); }
     const sc = [
       ['기준 (현재 입력)', p],
       [acct ? '월 투자금 +100만원 (일반계좌)' : '월 투자금 +100만원', acct ? { ...p, mGen: p.mGen + 100 } : { ...p, monthly: p.monthly + 100 }],
-      [`은퇴 전 수익률 ${p.retPre}% → ${+(p.retPre - 3).toFixed(1)}%`, { ...p, retPre: p.retPre - 3, divYield: Math.min(p.divYield, Math.max(p.retPre - 3, 0)) }],
-      [`은퇴 후 수익률 ${p.retPost}% → ${+(p.retPost - 1).toFixed(1)}%`, { ...p, retPost: p.retPost - 1 }],
+      [`은퇴 전 수익률 ${p.retPre.toFixed(1)}% → ${(p.retPre - 3).toFixed(1)}%`, { ...p, retPre: p.retPre - 3, divYield: Math.min(p.divYield, Math.max(p.retPre - 3, 0)) }],
+      [`은퇴 후 수익률 ${p.retPost.toFixed(1)}% → ${(p.retPost - 1).toFixed(1)}%`, { ...p, retPost: p.retPost - 1 }],
       [`월 생활비 ${fmt(p.expense)} → ${fmt(p.expense + 100)}`, { ...p, expense: p.expense + 100 }],
       [`물가상승률 ${p.inflation}% → ${+(p.inflation + 1).toFixed(1)}%`, { ...p, inflation: p.inflation + 1 }],
       ['국민연금 없음', { ...p, pension: 0 }],
@@ -730,6 +807,76 @@ footer.site a { color: var(--ink-2); }
       return `<tr class="${r.age === R ? 'ret' : ''}"><td>${tag(r)}</td><td>${fmt(e(r.total))}</td><td>${fmt(e(r.afterTax))}</td><td>${z(e(r.gen))}</td><td>${z(e(r.isa))}</td><td>${z(e(r.sav))}</td><td>${z(e(r.irp))}</td><td>${z(m(r.contrib))}</td><td>${z(e(r.credit))}</td><td>${z(m(r.tax))}</td><td>${z(m(r.expense))}</td><td>${z(m(r.nps))}</td><td>${z(m(r.wGen))}</td><td>${z(m(r.wIsa))}</td><td>${z(m(r.wPen))}</td><td class="${r.shortfall > .5 ? 'neg' : ''}">${z(m(r.shortfall))}</td></tr>`;
     }).join('');
   }
+
+  // ---------- 포트폴리오 비교 · 몬테카를로 ----------
+  const simAt = (p, R, extra) => p.mode === 'simple' ? E.simulateSimple({ ...p, ...extra }, R) : E.simulateAccounts({ ...p, ...extra }, R, alloc(p));
+  const probCls = (x) => x >= 0.8 ? 'good' : x >= 0.5 ? 'warn' : 'crit';
+  function pfRowParams(p, id) {
+    const post = p.pfPost === 'same' || p.postId === 'custom' ? id : p.postId;
+    const a = pfStat[id], b = pfStat[post];
+    return { ...p, retPre: +a.ret.toFixed(2), divYield: +a.div.toFixed(2), retPost: +b.ret.toFixed(2), divYieldPost: +b.div.toFixed(2), _post: post };
+  }
+  function renderPf() {
+    const { p } = last;
+    const postTxt = p.pfPost === 'same' || p.postId === 'custom' ? '은퇴 후에도 같은 포트폴리오 유지' : `은퇴 후에는 '${PF.byId(p.postId).name}'로 전환`;
+    $('capPf').textContent = `${postTxt} · 기대수익률은 달러 기준 장기(10~15년) 전망 · 행을 선택하면 위 결과가 그 포트폴리오로 바뀝니다`;
+    $('pfColProb').innerHTML = `${p.retAge}세 은퇴<br><span style="font-weight:400">성공 확률</span>`;
+    $('pfBody').innerHTML = PF.PRESETS.map(x => {
+      const st = pfStat[x.id], q = pfRowParams(p, x.id);
+      const e = E.earliest((R) => simAt(q, R), q);
+      const sel = p.pfPre === x.id;
+      return `<tr class="${sel ? 'sel' : ''}"><td><span class="nm">${x.name}</span><span class="tg">${x.tag}</span>${wbar(x.w)}</td>
+        <td><b>${st.ret.toFixed(1)}%</b></td><td>${st.vol.toFixed(1)}%</td><td>${st.bad.toFixed(0)}%</td>
+        <td>${e == null ? '<span style="color:var(--crit)">범위 내 불가</span>' : e + '세'}</td>
+        <td class="prob" id="pp-${x.id}">…</td>
+        <td><button type="button" class="btn" data-pick="${x.id}" aria-pressed="${sel}">${sel ? '선택됨' : '선택'}</button></td></tr>`;
+    }).join('');
+    $('pfBody').querySelectorAll('[data-pick]').forEach(b => b.addEventListener('click', () => { $('pfPre').value = b.dataset.pick; run(); $('verdictText').scrollIntoView({ behavior: 'smooth', block: 'center' }); }));
+  }
+  let mcToken = 0, pathCache = { key: '', paths: null };
+  const tick = () => new Promise(r => setTimeout(r, 0));
+  async function successRate(q, R, wPre, wPost, paths, token) {
+    let ok = 0;
+    const ri = R - q.curAge;
+    for (let k = 0; k < paths.length; k++) {
+      if (k % 50 === 49) { await tick(); if (token !== mcToken) throw 'cancel'; }
+      const path = PF.portfolioPath(paths[k], wPre, wPost, ri);
+      if (simAt(q, R, { path }).ok) ok++;
+    }
+    return ok / paths.length;
+  }
+  async function runMC(m) {
+    const token = ++mcToken, p = m.p;
+    const years = p.endAge - p.curAge;
+    const key = `${years}`;
+    if (pathCache.key !== key) pathCache = { key, paths: PF.assetPaths(MC_N, years) };
+    const paths = pathCache.paths;
+    try {
+      if (p.stochastic) {
+        const wPre = PF.byId(p.pfPre).w, wPost = PF.byId(p.postId).w;
+        const pr = await successRate(p, p.retAge, wPre, wPost, paths, token);
+        const pct = Math.round(pr * 100);
+        const pill = $('probPillWrap');
+        if (pill) { pill.className = 'pill ' + probCls(pr); pill.innerHTML = `${p.retAge}세 은퇴 성공 확률 ${pct}% · 수익률 변동 ${MC_N}가지 경로 중 ${Math.round(pr * MC_N)}개에서 ${p.endAge}세까지 유지`; }
+        if ($('kProb')) { $('kProb').innerHTML = `<span class="prob ${probCls(pr)}">${pct}%</span>`; }
+        // 80% 확률로 가능한 가장 이른 나이 (확률은 은퇴 나이에 대해 단조 증가로 가정)
+        let lo = p.curAge, hi = p.endAge - 1, found = null;
+        const target = 0.8;
+        if (await successRate(p, hi, wPre, wPost, paths, token) >= target) {
+          while (lo < hi) { const mid = Math.floor((lo + hi) / 2); if (await successRate(p, mid, wPre, wPost, paths, token) >= target) hi = mid; else lo = mid + 1; }
+          found = lo;
+        }
+        if ($('kProbD')) $('kProbD').textContent = found == null ? `${p.endAge - 1}세까지 늦춰도 80%에 못 미침` : `80% 확률로 은퇴 가능한 나이 ${found}세`;
+      }
+      for (const x of PF.PRESETS) {
+        const q = pfRowParams(p, x.id);
+        const pr = await successRate(q, p.retAge, x.w, PF.byId(q._post).w, paths, token);
+        const cell = $('pp-' + x.id);
+        if (cell) { cell.className = 'prob ' + probCls(pr); cell.innerHTML = `${Math.round(pr * 100)}%`; }
+      }
+    } catch (e) { if (e !== 'cancel') console.error(e); }
+  }
+  $('assetBody').innerHTML = PF.ASSETS.map(a => `<tr><td><b>${a.name}</b> <span style="color:var(--muted)">(${a.id})</span></td><td>${a.ret.toFixed(1)}%</td><td>${a.vol.toFixed(1)}%</td><td>${a.div.toFixed(1)}%</td><td style="text-align:left">${a.note}</td></tr>`).join('');
 
   // ---------- 모드 · 이벤트 ----------
   function setMode(m, rerun = true) {

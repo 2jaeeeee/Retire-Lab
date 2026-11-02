@@ -34,13 +34,15 @@
   function simulateSimple(p, retAge) {
     const years = p.endAge - p.curAge;
     const rPre = mrate(p.retPre, p.fee), rPost = mrate(p.retPost, p.fee);
-    const inf = p.inflation / 100, g = p.contribGrowth / 100, dy = p.divYield / 100;
+    const inf = p.inflation / 100, g = p.contribGrowth / 100;
+    const dyPre = p.divYield / 100, dyPost = (p.divYieldPost ?? p.divYield) / 100;
     let A = p.assets, principal = p.assets, depletedAge = null, assetsAtRet = retAge <= p.curAge ? A : null;
     const rows = [];
     for (let y = 0; y < years; y++) {
       const age = p.curAge + y, retired = age >= retAge;
       if (age === retAge) assetsAtRet = A;
       const row = { age, retired, contrib: 0, growth: 0, div: 0, expense: 0, pension: 0, sell: 0, shortfall: 0, divUsed: 0, pensionUsed: 0 };
+      const rM = p.path ? mrate(p.path[y], p.fee) : retired ? rPost : rPre, dy = retired ? dyPost : dyPre;
       for (let m = 0; m < 12; m++) {
         const infl = Math.pow(1 + inf, y + m / 12);
         const div = A * dy / 12;
@@ -57,7 +59,7 @@
             else { const d = Math.min(div, A); row.divUsed += d; row.sell += A - d; row.shortfall += need - A; A = 0; if (depletedAge == null) depletedAge = age; }
           }
         }
-        const gr = A * (retired ? rPost : rPre);
+        const gr = A * rM;
         A += gr; row.growth += gr; row.div += div;
       }
       row.end = A; row.principal = principal;
@@ -73,7 +75,8 @@
     const isaMode = opts.isaMode || p.isaMode;            // 'pension' | 'reinvest' | 'hold'
     const years = p.endAge - p.curAge;
     const rPre = mrate(p.retPre, p.feeAcct), rPost = mrate(p.retPost, p.feeAcct);
-    const inf = p.inflation / 100, g = p.contribGrowth / 100, dy = p.divYield / 100;
+    const inf = p.inflation / 100, g = p.contribGrowth / 100;
+    const dyPre = p.divYield / 100, dyPost = (p.divYieldPost ?? p.divYield) / 100;
     const creditRate = p.salary <= TAX.creditSalaryThreshold ? TAX.creditRateLow : TAX.creditRateHigh;
     const isaExempt = TAX.isaExempt[p.isaType] || TAX.isaExempt.general;
     const cycle = isaMode === 'hold' ? Infinity : TAX.isaMinYears;
@@ -102,6 +105,7 @@
       const age = p.curAge + y, retired = age >= retAge;
       if (age === retAge || (y === 0 && retAge <= p.curAge)) atRet = snap();
       const row = { age, retired, contrib: 0, credit: 0, tax: 0, expense: 0, nps: 0, npsUsed: 0, wGen: 0, wIsa: 0, wPen: 0, shortfall: 0, growth: 0, genDiv: 0 };
+      const rM = p.path ? mrate(p.path[y], p.feeAcct) : retired ? rPost : rPre, dy = retired ? dyPost : dyPre;
       const yr = { pen: 0, sav: 0, irp: 0, isa: 0, realized: 0, penIncT: 0, lowT: 0, lowRate: TAX.pensionTaxRate(age), credit: 0 };
       if (age >= TAX.pensionAgeMin) {
         const k = age - TAX.pensionAgeMin + 1;
@@ -195,7 +199,7 @@
           }
         }
         // 운용: 일반계좌 배당은 미국 원천징수 15% 후 재투자(취득가 증가)
-        const r = retired ? rPost : rPre;
+        const r = rM;
         const before = total();
         const div = s.gen.v * dy / 12, wh = div * TAX.usDivWithholding;
         s.gen.v = s.gen.v * (1 + r) - wh; s.gen.basis += div - wh; tot.taxDiv += wh; row.tax += wh; row.genDiv += div;

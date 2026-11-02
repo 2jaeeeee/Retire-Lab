@@ -76,3 +76,13 @@ test('일반계좌 차익 1,000 실현 → (1,000−250)×22% = 165', () => {
   const r = E.simulateAccounts(p, 61, { gen: 0, isa: 0, sav: 0, irp: 0 });
   near(r.totals.taxCg, 165, 0.01);
 });
+
+test('수익률 경로가 상수면 고정 수익률과 같은 결과', () => {
+  const p = { ...base, curAge: 40, endAge: 90, retPre: 7, retPost: 5, bGen: 5000, bSav: 2000, expense: 200 };
+  const a = { gen: 50, isa: 30, sav: 50, irp: 25 };
+  const path = Array.from({ length: 50 }, (_, y) => (40 + y >= 55 ? 5 : 7));
+  const x = E.simulateAccounts(p, 55, a), y = E.simulateAccounts({ ...p, path }, 55, a);
+  near(x.end.total, y.end.total, 1e-6);
+  const s1 = E.simulateSimple({ ...p, assets: 7000, monthly: 155, fee: 0 }, 55), s2 = E.simulateSimple({ ...p, assets: 7000, monthly: 155, fee: 0, path }, 55);
+  near(s1.endAssets, s2.endAssets, 1e-6);
+});
