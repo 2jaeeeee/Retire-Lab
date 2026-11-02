@@ -28,14 +28,10 @@
   ];
 
   const PRESETS = [
-    { id: 'sp500',  name: 'S&P 500 집중',     tag: '가장 단순한 장기 투자', w: { SPY: 100 } },
-    { id: 'growth', name: '성장형',           tag: 'S&P 500 + 나스닥',       w: { SPY: 50, QQQ: 50 } },
-    { id: 'nasdaq', name: '나스닥 집중',       tag: '변동성 감수, 기술주 중심', w: { QQQ: 100 } },
-    { id: 'divgrowth', name: '배당 성장형',     tag: '배당 현금흐름 강화',      w: { SPY: 50, SCHD: 50 } },
-    { id: 'balanced', name: '균형 60/40',     tag: '주식 60 · 국채 40',       w: { SPY: 60, IEF: 40 } },
-    { id: 'income', name: '은퇴 인컴형',       tag: '배당·이자 중심, 낮은 변동성', w: { SCHD: 40, SPY: 10, IEF: 30, SGOV: 10, GLD: 10 } },
-    { id: 'allweather', name: '올웨더형',      tag: '경기 국면 분산 (단순화)',  w: { SPY: 30, TLT: 40, IEF: 15, GLD: 15 } },
-    { id: 'permanent', name: '영구 포트폴리오', tag: '주식·장기채·현금·금 각 25%', w: { SPY: 25, TLT: 25, SGOV: 25, GLD: 25 } },
+    { id: 'aggressive', name: '공격형', level: 4, tag: '주식 100% · S&P 500 + 나스닥', w: { SPY: 50, QQQ: 50 } },
+    { id: 'growth',     name: '성장형', level: 3, tag: '주식 80% · 배당주와 국채 일부', w: { SPY: 60, SCHD: 20, IEF: 20 } },
+    { id: 'balanced',   name: '균형형', level: 2, tag: '주식 50% · 국채와 금으로 분산', w: { SPY: 35, SCHD: 15, IEF: 35, GLD: 15 } },
+    { id: 'stable',     name: '안정형', level: 1, tag: '주식 30% · 국채·현금 중심', w: { SPY: 20, SCHD: 10, IEF: 40, SGOV: 20, GLD: 10 } },
   ];
 
   const n = ASSETS.length;
@@ -99,7 +95,8 @@
     return path.map((row, y) => { const x = y >= retIndex ? b : a; let s = 0; for (let i = 0; i < n; i++) s += x[i] * row[i]; return s * 100; });
   }
 
-  const api = { SOURCE, ASSETS, PRESETS, C, stats, assetPaths, portfolioPath, weightsVec, byId: (id) => PRESETS.find(p => p.id === id) };
+  const api = { SOURCE, ASSETS, PRESETS, C, stats, assetPaths, portfolioPath, weightsVec, byId: (id) => PRESETS.find(p => p.id === id),
+    safer: (id) => { const i = PRESETS.findIndex(p => p.id === id); return PRESETS[Math.min(i + 1, PRESETS.length - 1)].id; } };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.RetirePortfolio = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
