@@ -30,6 +30,47 @@
 
   const mrate = (annualPct, feePct) => Math.pow(1 + (annualPct - feePct) / 100, 1 / 12) - 1;
 
+  // ---------- 퇴직금 ----------
+  // 퇴직소득세 (지방소득세 포함). 근속연수공제는 2023년 개정 기준, 1년 미만 끝수는 1년으로 봄.
+  const RET = { pensionCut10: 0.7, pensionCutAfter: 0.6 };   // IRP에서 연금으로 받으면 10년차까지 70%, 이후 60%만 과세
+  function retirementTax(amount, years) {
+    if (!(amount > 0) || !(years > 0)) return 0;
+    const Y = Math.max(1, Math.ceil(years - 1e-9));
+    const sd = Y <= 5 ? 100 * Y : Y <= 10 ? 500 + 200 * (Y - 5) : Y <= 20 ? 1500 + 250 * (Y - 10) : 4000 + 300 * (Y - 20);
+    const conv = Math.max(0, amount - sd) * 12 / Y;
+    const cd = conv <= 800 ? conv : conv <= 7000 ? 800 + (conv - 800) * 0.6 : conv <= 10000 ? 4520 + (conv - 7000) * 0.55 : conv <= 30000 ? 6170 + (conv - 10000) * 0.45 : 15170 + (conv - 30000) * 0.35;
+    const base = Math.max(0, conv - cd);
+    const B = [[1400, .06, 0], [5000, .15, 126], [8800, .24, 576], [15000, .35, 1544], [30000, .38, 1994], [50000, .40, 2594], [100000, .42, 3594], [Infinity, .45, 6594]];
+    const [, r, d] = B.find(b => base <= b[0]);
+    return Math.max(0, base * r - d) * Y / 12 * 1.1;
+  }
+  // 퇴직할 때 받는 퇴직급여 (만원, 명목). rp.type: 'severance'(퇴직금) | 'db' | 'dc'
+  // 평균임금 ≈ 연봉/12. 연봉은 매년 wageGrowth만큼 오름. DC는 매년 연봉/12를 연말에 적립하고 같은 포트폴리오로 운용.
+  function retirePay(p, retAge, feePct) {
+    const rp = p.rp;
+    if (!rp || !rp.on || retAge <= p.curAge) return null;
+    const wg = (rp.wageGrowth || 0) / 100, wage = (age) => p.salary * Math.pow(1 + wg, age - p.curAge);
+    const hire = Math.min(rp.hireAge, p.curAge);
+    const mid = rp.midOn && rp.type !== 'db' && rp.midAge > hire && rp.midAge < retAge ? rp.midAge : null;
+    let gross, years, midPay = 0, midTax = 0, past = mid != null && mid <= p.curAge;
+    if (rp.type === 'dc') {
+      let bal = isFinite(rp.dcBalance) && rp.dcBalance >= 0 ? rp.dcBalance : wage(p.curAge) / 12 * (p.curAge - hire);
+      for (let age = p.curAge; age < retAge; age++) {
+        const y = age - p.curAge;
+        if (mid === age) { midPay = Math.min(rp.midAmount, bal); bal -= midPay; midTax = retirementTax(midPay, age - hire); }
+        const r = ((p.path ? p.path[y] : p.retPre) - feePct) / 100;
+        bal = bal * (1 + r) + wage(age) / 12;
+      }
+      gross = bal; years = retAge - hire;
+    } else {
+      let start = hire;
+      if (mid != null) { if (!past) { midPay = wage(mid - 1) / 12 * (mid - hire); midTax = retirementTax(midPay, mid - hire); } start = mid; }
+      gross = wage(retAge - 1) / 12 * (retAge - start); years = retAge - start;
+    }
+    const tax = retirementTax(gross, years);
+    return { gross, tax, taxPension: tax * RET.pensionCut10, years, midPay, midTax, midAge: mid, midPast: past, type: rp.type };
+  }
+
   // ---------- 1단계: 간편 계산 (단일 자산, 세금은 비용률에 포함) ----------
   function simulateSimple(p, retAge) {
     const years = p.endAge - p.curAge;
@@ -37,9 +78,11 @@
     const inf = p.inflation / 100, g = p.contribGrowth / 100;
     const dyPre = p.divYield / 100, dyPost = (p.divYieldPost ?? p.divYield) / 100;
     let A = p.assets, principal = p.assets, depletedAge = null, assetsAtRet = retAge <= p.curAge ? A : null;
+    const rp = retirePay(p, retAge, p.fee);
     const rows = [];
     for (let y = 0; y < years; y++) {
       const age = p.curAge + y, retired = age >= retAge;
+      if (age === retAge && rp) { const net = rp.gross - rp.taxPension; A += net; principal += net; }
       if (age === retAge) assetsAtRet = A;
       const row = { age, retired, contrib: 0, growth: 0, div: 0, expense: 0, pension: 0, sell: 0, shortfall: 0, divUsed: 0, pensionUsed: 0 };
       const rM = p.path ? mrate(p.path[y], p.fee) : retired ? rPost : rPre, dy = retired ? dyPost : dyPre;
@@ -65,7 +108,7 @@
       row.end = A; row.principal = principal;
       rows.push(row);
     }
-    return { rows, depletedAge, assetsAtRet, ok: depletedAge == null, endAssets: A };
+    return { rows, depletedAge, assetsAtRet, ok: depletedAge == null, endAssets: A, rp };
   }
 
   // ---------- 2단계: 계좌별 절세 시뮬레이션 ----------
@@ -84,32 +127,35 @@
     const s = {
       gen: { v: p.bGen, basis: p.bGen },
       isa: { v: p.bIsa, basis: p.bIsa, start: 0, exUsed: 0 },
-      sav: { N: 0, T: p.bSav, lim: Infinity, used: 0 },
-      irp: { N: 0, T: p.bIrp, lim: Infinity, used: 0 },
+      sav: { N: 0, D: 0, tD: 0, T: p.bSav, lim: Infinity, used: 0 },
+      irp: { N: 0, D: 0, tD: 0, dAge: 0, T: p.bIrp, lim: Infinity, used: 0 },
     };
     let principal = p.bGen + p.bIsa + p.bSav + p.bIrp;
-    const tot = { credit: 0, taxDiv: 0, taxCg: 0, taxIsa: 0, taxPen: 0, taxEarly: 0 };
+    const tot = { credit: 0, taxDiv: 0, taxCg: 0, taxIsa: 0, taxPen: 0, taxEarly: 0, taxRet: 0 };
+    const rp = retirePay(p, retAge, p.feeAcct);
     let depletedAge = null, atRet = null, earlyPensionUsed = false, finIncomeWarn = false;
     const rows = [];
 
-    const total = () => s.gen.v + s.isa.v + s.sav.N + s.sav.T + s.irp.N + s.irp.T;
+    const pv = (a) => a.N + a.D + a.T;
+    const total = () => s.gen.v + s.isa.v + pv(s.sav) + pv(s.irp);
     const afterTax = () => {
       const gGain = Math.max(0, s.gen.v - s.gen.basis - TAX.foreignCgDeduction);
       const iGain = Math.max(0, s.isa.v - s.isa.basis - Math.max(0, isaExempt - s.isa.exUsed));
       return s.gen.v - gGain * TAX.foreignCgRate + s.isa.v - iGain * TAX.isaRate
-        + s.sav.N + s.irp.N + (s.sav.T + s.irp.T) * (1 - TAX.pensionTaxRate(55));
+        + s.sav.N + s.irp.N + s.irp.D * (1 - s.irp.tD * RET.pensionCut10) + (s.sav.T + s.irp.T) * (1 - TAX.pensionTaxRate(55));
     };
-    const snap = () => ({ gen: s.gen.v, isa: s.isa.v, sav: s.sav.N + s.sav.T, irp: s.irp.N + s.irp.T, total: total(), afterTax: afterTax() });
+    const snap = () => ({ gen: s.gen.v, isa: s.isa.v, sav: pv(s.sav), irp: pv(s.irp), total: total(), afterTax: afterTax() });
 
     for (let y = 0; y < years; y++) {
       const age = p.curAge + y, retired = age >= retAge;
+      if (age === retAge && rp && rp.gross > 0) { s.irp.D += rp.gross; s.irp.tD = rp.tax / rp.gross; s.irp.dAge = age; principal += rp.gross; }
       if (age === retAge || (y === 0 && retAge <= p.curAge)) atRet = snap();
       const row = { age, retired, contrib: 0, credit: 0, tax: 0, expense: 0, nps: 0, npsUsed: 0, wGen: 0, wIsa: 0, wPen: 0, shortfall: 0, growth: 0, genDiv: 0 };
       const rM = p.path ? mrate(p.path[y], p.feeAcct) : retired ? rPost : rPre, dy = retired ? dyPost : dyPre;
       const yr = { pen: 0, sav: 0, irp: 0, isa: 0, realized: 0, penIncT: 0, lowT: 0, lowRate: TAX.pensionTaxRate(age), credit: 0 };
       if (age >= TAX.pensionAgeMin) {
         const k = age - TAX.pensionAgeMin + 1;
-        for (const a of [s.sav, s.irp]) { a.lim = k <= 10 ? (a.N + a.T) / (11 - k) * 1.2 : Infinity; a.used = 0; }
+        for (const a of [s.sav, s.irp]) { a.lim = k <= 10 ? pv(a) / (11 - k) * 1.2 : Infinity; a.used = 0; }
       }
 
       // --- 인출 함수들: net(실수령) 기준 요청, 실제로 확보한 net 반환 ---
@@ -142,6 +188,11 @@
           if (early) return 0;
           const nTake = Math.min(a.N, net, Math.max(0, a.lim - a.used));
           a.N -= nTake; a.used += nTake; got += nTake; row.wPen += nTake;
+          if (a.D > 0 && net - got > 1e-9) {   // 이연퇴직소득: 연금수령 시 퇴직소득세의 70%(11년차부터 60%)
+            const tr = a.tD * (age - a.dAge < 10 ? RET.pensionCut10 : RET.pensionCutAfter);
+            const g2 = Math.min(a.D, Math.max(0, a.lim - a.used), (net - got) / (1 - tr));
+            if (g2 > 0) { const tx = g2 * tr; a.D -= g2; a.used += g2; got += g2 - tx; tot.taxRet += tx; row.tax += tx; row.wPen += g2; }
+          }
           const r = yr.lowRate;
           const room = Math.min(Math.max(0, a.lim - a.used), Math.max(0, TAX.pensionSeparateThreshold - yr.penIncT));
           const gross = Math.min(a.T, room, (net - got) / (1 - r));
@@ -155,6 +206,10 @@
         const nTake = Math.min(a.N, net);
         a.N -= nTake; got += nTake; row.wPen += nTake;
         if (!early) a.used += nTake;
+        if (a.D > 0 && net - got > 1e-9) {     // 연금외수령(55세 전·한도 초과): 퇴직소득세 전액
+          const g2 = Math.min(a.D, (net - got) / (1 - a.tD));
+          if (g2 > 0) { const tx = g2 * a.tD; a.D -= g2; got += g2 - tx; tot.taxRet += tx; row.tax += tx; row.wPen += g2; if (!early) a.used += g2; }
+        }
         const gross = Math.min(a.T, (net - got) / (1 - TAX.pensionHighRate));
         if (gross > 0) {
           const tax = gross * TAX.pensionHighRate;
@@ -204,7 +259,7 @@
         const div = s.gen.v * dy / 12, wh = div * TAX.usDivWithholding;
         s.gen.v = s.gen.v * (1 + r) - wh; s.gen.basis += div - wh; tot.taxDiv += wh; row.tax += wh; row.genDiv += div;
         s.isa.v *= 1 + r;
-        for (const a of [s.sav, s.irp]) a.T += (a.N + a.T) * r;
+        for (const a of [s.sav, s.irp]) a.T += pv(a) * r;
         row.growth += total() - before + wh;
       }
 
@@ -250,7 +305,7 @@
       rows.push(row);
     }
     const end = snap();
-    return { rows, depletedAge, ok: depletedAge == null, atRet: atRet || end, end, totals: tot, earlyPensionUsed, finIncomeWarn, creditRate };
+    return { rows, depletedAge, ok: depletedAge == null, atRet: atRet || end, end, totals: tot, earlyPensionUsed, finIncomeWarn, creditRate, rp };
   }
 
   // ---------- 공통 탐색 ----------
@@ -281,7 +336,7 @@
     }
   }
 
-  const api = { TAX, simulateSimple, simulateAccounts, earliest, solveUp, bisect, scenarioAlloc };
+  const api = { TAX, RET, retirementTax, retirePay, simulateSimple, simulateAccounts, earliest, solveUp, bisect, scenarioAlloc };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.RetireEngine = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

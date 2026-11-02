@@ -103,6 +103,12 @@ details.more > summary .cur { color: var(--muted); font-weight: 500; font-size: 
 .pfgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .pfc { text-align: left; background: var(--surface-2); border: 2px solid transparent; border-radius: 20px; padding: 18px; display: grid; gap: 10px; align-content: start; transition: border-color .15s, background .15s, transform .1s; min-width: 0; }
 .pfc:hover { background: var(--surface-3); }
+.rpbody { display: grid; gap: 14px; margin-top: 14px; }
+.seg.wide { display: flex; } .seg.wide button { flex: 1; padding: 9px 8px; font-size: 14px; }
+.rpbody .settings { margin-top: 0; }
+.rpbody .rows { margin-top: 4px; }
+.rowtag { font-size: 11px; font-weight: 700; color: var(--accent); background: var(--accent-soft); padding: 2px 6px; border-radius: 5px; margin-left: 6px; vertical-align: 2px; }
+.toggle.off { opacity: .55; cursor: not-allowed; }
 .pfc:nth-child(odd):last-child { grid-column: 1 / -1; }
 .pfc:active { transform: scale(.98); }
 .pfc[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
@@ -221,6 +227,35 @@ footer.site a { color: var(--ink-2); }
   </section>
 
   <section class="card">
+    <div class="pfhead"><div><h2>퇴직금도 함께 계산해요</h2><p class="sub">퇴직할 때 IRP로 옮겨 위에서 고른 포트폴리오로 굴린다고 계산해요</p></div></div>
+    <label class="toggle"><span>퇴직금 포함하기<small>회사에서 받을 퇴직금·퇴직연금</small></span><input type="checkbox" id="rpOn"></label>
+    <div class="rpbody" id="rpBody">
+      <div class="seg wide" role="group" aria-label="퇴직급여 제도">
+        <button type="button" data-rptype="severance" aria-pressed="false">퇴직금</button>
+        <button type="button" data-rptype="db" aria-pressed="false">DB형</button>
+        <button type="button" data-rptype="dc" aria-pressed="false">DC형</button>
+      </div>
+      <p class="hint" id="rpTypeHint" style="margin:-4px 0 0"></p>
+      <div class="settings">
+        <div class="f"><label for="hireAge">입사 나이</label><div class="unitbox"><input id="hireAge" type="number" inputmode="numeric"><span class="u">세</span></div></div>
+        <div class="f"><label for="salary2">지금 연봉 (세전)</label><div class="unitbox"><input id="salary2" type="number" inputmode="numeric"><span class="u">만원/년</span></div></div>
+        <div class="f"><label for="wageGrowth">연봉 상승률</label><div class="unitbox"><input id="wageGrowth" type="number" inputmode="decimal" step="0.5"><span class="u">%/년</span></div></div>
+        <div class="f" data-rp="dc"><label for="dcBalance">지금까지 쌓인 DC 적립금</label><div class="unitbox"><input id="dcBalance" type="number" inputmode="numeric" placeholder="모르면 비워두세요"><span class="u">만원</span></div></div>
+      </div>
+      <label class="toggle" id="midToggle"><span>집 살 때 중간에 꺼내기<small id="midSmall"></small></span><input type="checkbox" id="midOn"></label>
+      <div class="settings" id="midBody">
+        <div class="f"><label for="midAge">꺼내는 나이</label><div class="unitbox"><input id="midAge" type="number" inputmode="numeric"><span class="u">세</span></div></div>
+        <div class="f" data-rp="dc"><label for="midAmount">꺼내는 금액</label><div class="unitbox"><input id="midAmount" type="number" inputmode="numeric"><span class="u">만원</span></div></div>
+      </div>
+      <ul class="rows" id="rpRows"></ul>
+      <div>
+        <p class="eyebrow" style="margin:6px 0 0" id="rpCmpTitle"></p>
+        <ul class="rows" id="rpCmp" style="margin-top:6px"></ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
     <div class="card-h">
       <div><h2>자산은 이렇게<br>움직일 수 있어요</h2><p class="sub" id="fanSub"></p></div>
       <div class="seg" role="group" aria-label="금액 기준">
@@ -317,6 +352,15 @@ footer.site a { color: var(--ink-2); }
         <li><b>연금 수령</b>: 55세부터 연금수령한도(<code>평가액 ÷ (11 − 수령연차) × 120%</code>) 안에서 나이에 따라 5.5%·4.4%·3.3%. 한 해 1,500만원을 넘으면 그 해 전체 16.5% 분리과세. 한도를 넘거나 55세 전에 꺼내면 16.5%.</li>
         <li><b>꺼내는 순서</b>: 55세 전에는 일반계좌 → ISA → (모자라면) 연금계좌. 55세부터는 연금 저율 구간 → 일반계좌 → ISA → 연금 나머지.</li>
       </ul>
+      <h3>퇴직금 계산 규칙</h3>
+      <ul>
+        <li><b>퇴직금·DB형</b>: 퇴직 직전 연봉 ÷ 12 × 근속연수. 평균임금을 연봉의 1/12로 봅니다(상여 포함 연봉 기준).</li>
+        <li><b>DC형</b>: 회사가 매년 연봉의 1/12을 연말에 넣고, 위에서 고른 은퇴 전 포트폴리오로 굴린다고 봅니다. 적립금을 모르면 '연봉 ÷ 12 × 지금까지 근속연수'로 추정합니다.</li>
+        <li><b>퇴직할 때</b>: 전액을 IRP로 옮겨 같은 포트폴리오로 굴리고 연금으로 나눠 받는다고 봅니다. 이때 퇴직소득세는 10년차까지 30%, 그 뒤로 40% 줄어듭니다. 55세 전이나 연금수령한도를 넘겨 꺼내면 감면 없이 냅니다.</li>
+        <li><b>퇴직소득세</b>: 근속연수공제(2023년 개정) → 환산급여(×12 ÷ 근속연수) → 환산급여공제 → 기본세율(6~45%) → ×근속연수 ÷ 12, 지방소득세 10% 포함.</li>
+        <li><b>집 살 때 중간에 꺼내기</b>: 무주택자 주택 구입 사유로 퇴직금은 중간정산, DC형은 중도인출이 가능하고 DB형은 안 됩니다. 중간정산하면 그때까지 퇴직금을 받고 근속연수는 다시 셉니다. 꺼낸 돈은 집에 쓰는 것으로 보고 투자 자산에서 뺍니다.</li>
+        <li>한 회사에 계속 다닌다고 봅니다. 이직할 때 받은 퇴직금을 IRP에 계속 넣어두는 경우와 결과가 비슷합니다.</li>
+      </ul>
       <h3>반영하지 않은 것</h3>
       <ul>
         <li>환율·물가 변동, 국민연금 소득세, 금융소득종합과세, 건강보험료, 퇴직금·퇴직연금, IRP 위험자산 70% 한도</li>
@@ -349,8 +393,9 @@ footer.site a { color: var(--ink-2); }
   const DEFAULTS = { curAge: 35, retAge: 50, endAge: 95, expense: 300, assets: 15000, monthly: 200, contribGrowth: 3, fee: 0.4, inflation: 2.5,
     pension: 100, pensionAge: 65, pf: 'dividend', saferAfter: true,
     useAcct: false, salary: 7000, bGen: 8000, bIsa: 3000, bSav: 3000, bIrp: 1000, mGen: 75, mIsa: 50, mSav: 50, mIrp: 25,
-    isaType: 'general', isaMode: 'pension', refundReinvest: true, feeAcct: 0.2 };
-  const NUM = ['curAge','retAge','endAge','expense','assets','monthly','contribGrowth','inflation','pension','pensionAge','salary','bGen','bIsa','bSav','bIrp','mGen','mIsa','mSav','mIrp'];
+    isaType: 'general', isaMode: 'pension', refundReinvest: true, feeAcct: 0.2,
+    rpOn: true, rpType: 'db', hireAge: 28, wageGrowth: 3, dcBalance: null, midOn: false, midAge: 40, midAmount: 5000 };
+  const NUM = ['curAge','retAge','endAge','expense','assets','monthly','contribGrowth','inflation','pension','pensionAge','salary','bGen','bIsa','bSav','bIrp','mGen','mIsa','mSav','mIrp','hireAge','wageGrowth','midAge','midAmount'];
   const STORE = 'retirelab.v3';
   const $ = (id) => document.getElementById(id);
   const view = { money: 'real', tab: 'flow' };
@@ -373,6 +418,8 @@ footer.site a { color: var(--ink-2); }
     $('fee').value = p.useAcct ? p.feeAcct : p.fee;
     $('saferAfter').checked = !!p.saferAfter; $('useAcct').checked = !!p.useAcct; $('refundReinvest').checked = !!p.refundReinvest;
     $('isaType').value = p.isaType; $('isaMode').value = p.isaMode;
+    $('salary2').value = p.salary; $('dcBalance').value = p.dcBalance == null || !isFinite(p.dcBalance) ? '' : p.dcBalance;
+    $('rpOn').checked = !!p.rpOn; $('midOn').checked = !!p.midOn;
     state = { ...p };
   }
   function load() { let s = null; try { s = JSON.parse(localStorage.getItem(STORE) || 'null'); } catch (e) {} const p = { ...DEFAULTS, ...(s || {}) }; if (!PF.byId(p.pf)) p.pf = DEFAULTS.pf; apply(p); }
@@ -382,6 +429,8 @@ footer.site a { color: var(--ink-2); }
     if (state.useAcct) state.feeAcct = parseFloat($('fee').value); else state.fee = parseFloat($('fee').value);
     state.saferAfter = $('saferAfter').checked; state.useAcct = $('useAcct').checked; state.refundReinvest = $('refundReinvest').checked;
     state.isaType = $('isaType').value; state.isaMode = $('isaMode').value;
+    state.rpOn = $('rpOn').checked; state.midOn = $('midOn').checked;
+    const dcv = $('dcBalance').value.trim(); state.dcBalance = dcv === '' ? null : parseFloat(dcv);
   }
   function params(pfId = state.pf) {
     const p = { ...state, mode: state.useAcct ? 'acct' : 'simple' };
@@ -389,6 +438,7 @@ footer.site a { color: var(--ink-2); }
     const postId = p.saferAfter ? PF.safer(pfId) : pfId;
     const a = pfStat[pfId], b = pfStat[postId];
     Object.assign(p, { pfId, postId, retPre: a.ret, divYield: a.div, retPost: b.ret, divYieldPost: b.div });
+    p.rp = { on: p.rpOn, type: p.rpType, hireAge: p.hireAge, wageGrowth: p.wageGrowth, dcBalance: p.dcBalance == null ? NaN : p.dcBalance, midOn: p.midOn && p.rpType !== 'db', midAge: p.midAge, midAmount: p.midAmount };
     return p;
   }
   function validate(p) {
@@ -407,6 +457,16 @@ footer.site a { color: var(--ink-2); }
     need('contribGrowth', '투자금 증액률은 0~20% 사이로 입력하세요.', p.contribGrowth >= 0 && p.contribGrowth <= 20);
     const fee = p.mode === 'acct' ? p.feeAcct : p.fee; need('fee', '비용은 0~5% 사이로 입력하세요.', fee >= 0 && fee <= 5);
     if (p.mode === 'acct') ['bGen','bIsa','bSav','bIrp','mGen','mIsa','mSav','mIrp','salary'].forEach(k => need(k, '계좌 금액은 0 이상이어야 합니다.', p[k] >= 0));
+    if (p.rpOn) {
+      need('hireAge', '입사 나이는 15세 이상, 지금 나이 이하로 입력하세요.', isFinite(p.hireAge) && p.hireAge >= 15 && p.hireAge <= p.curAge);
+      need('salary2', '연봉은 0 이상이어야 합니다.', isFinite(p.salary) && p.salary >= 0);
+      need('wageGrowth', '연봉 상승률은 0~15% 사이로 입력하세요.', isFinite(p.wageGrowth) && p.wageGrowth >= 0 && p.wageGrowth <= 15);
+      if (p.rpType === 'dc') need('dcBalance', 'DC 적립금은 0 이상이어야 합니다.', p.dcBalance == null || (isFinite(p.dcBalance) && p.dcBalance >= 0));
+      if (p.rp.midOn) {
+        need('midAge', `꺼내는 나이는 입사 이후, 은퇴(${p.retAge}세) 전이어야 합니다.`, isFinite(p.midAge) && p.midAge > p.hireAge && p.midAge < p.retAge);
+        if (p.rpType === 'dc') need('midAmount', '꺼내는 금액은 0 이상이어야 합니다.', isFinite(p.midAmount) && p.midAmount >= 0);
+      }
+    }
     else { need('assets', '현재 자산은 0 이상이어야 합니다.', p.assets >= 0); need('monthly', '월 투자금은 0 이상이어야 합니다.', p.monthly >= 0); }
     return { errs: [...new Set(errs)], bad };
   }
@@ -456,7 +516,7 @@ footer.site a { color: var(--ink-2); }
     if (errs.length) { $('errors').innerHTML = '<ul>' + errs.map(e => `<li>${e}</li>`).join('') + '</ul>'; return; }
     save(); syncInputs(p);
     last = buildModel(p); mc = null;
-    renderAnswer(); renderPfCards(); renderFan(); renderTab();
+    renderAnswer(); renderPfCards(); renderRp(); renderFan(); renderTab();
     runMC(last);
   }
   function syncInputs(p) {
@@ -467,6 +527,14 @@ footer.site a { color: var(--ink-2); }
     $('moreSum').textContent = `${p.endAge}세까지 · 국민연금 월 ${fmt(p.pension)} (${p.pensionAge}세~) · 물가 ${p.inflation}%`;
     $('acctPitch').hidden = state.useAcct; $('acctBody').hidden = !state.useAcct;
     document.querySelector('[data-tab="acct"]').textContent = state.useAcct ? '절세 계좌 · 켜짐' : '절세 계좌';
+    $('rpBody').hidden = !state.rpOn;
+    document.querySelectorAll('[data-rptype]').forEach(b => b.setAttribute('aria-pressed', b.dataset.rptype === state.rpType));
+    document.querySelectorAll('[data-rp="dc"]').forEach(el => { el.hidden = state.rpType !== 'dc'; });
+    const db = state.rpType === 'db';
+    $('midOn').disabled = db; $('midToggle').classList.toggle('off', db);
+    $('midBody').hidden = db || !state.midOn;
+    $('midSmall').textContent = db ? 'DB형은 중도인출이 안 돼요' : state.rpType === 'dc' ? '무주택자 주택 구입 시 적립금 일부를 꺼낼 수 있어요' : '무주택자 주택 구입 시 중간정산 · 이후 근속연수는 다시 시작';
+    $('rpTypeHint').textContent = { severance: '퇴직할 때 마지막 평균임금 × 근속연수만큼 받아요. 연봉이 오를수록 커져요.', db: '퇴직금과 같은 방식으로 계산하고, 회사가 운용해요.', dc: '회사가 매년 연봉의 1/12을 넣어주고, 내가 위 포트폴리오로 굴린다고 계산해요.' }[state.rpType];
   }
 
   // ---------- 답 ----------
@@ -513,6 +581,34 @@ footer.site a { color: var(--ink-2); }
     }).join('');
   }
 
+  // ---------- 퇴직금 ----------
+  function renderRp() {
+    const { p, target } = last;
+    if (!p.rpOn) return;
+    const rp = target.rp, yrs = p.retAge - p.curAge;
+    if (!rp) { $('rpRows').innerHTML = '<li><span class="k">이미 은퇴 나이예요</span><span class="v">–</span></li>'; $('rpCmp').innerHTML = ''; $('rpCmpTitle').textContent = ''; return; }
+    const d = defl(p, yrs), rows = [];
+    rows.push([`${p.retAge}세 퇴직할 때 받는 돈 (세전)`, `근속 ${Math.ceil(rp.years)}년 · 미래 금액 ${fmt(rp.gross, true)}`, fmt(rp.gross / d, true)]);
+    rows.push(['세금 · IRP에서 연금으로 받으면', `일시금으로 받으면 ${fmt(rp.tax / d, true)} (30% 더 냄)`, fmt(rp.taxPension / d, true)]);
+    if (rp.midAge != null && !rp.midPast) {
+      const dm = defl(p, rp.midAge - p.curAge);
+      const noMid = E.retirePay({ ...p, rp: { ...p.rp, midOn: false } }, p.retAge, p.mode === 'acct' ? p.feeAcct : p.fee);
+      rows.push([`${rp.midAge}세에 집 살 때 받는 돈`, `세금 ${fmt(rp.midTax / dm, true)} 제외 전`, fmt(rp.midPay / dm, true)]);
+      rows.push(['그 대신 줄어드는 퇴직금', p.rpType === 'severance' ? '근속연수가 다시 시작돼 오른 연봉을 덜 반영' : '꺼낸 돈이 그 뒤로 굴러가지 못함', `−${fmt((noMid.gross - rp.gross) / d, true)}`]);
+    } else if (rp.midPast) rows.push(['이미 중간정산을 받았어요', `${rp.midAge}세부터 근속연수를 다시 셉니다`, '']);
+    $('rpRows').innerHTML = rows.map(([k, s2, v]) => `<li><span class="k">${k}<small>${s2}</small></span><span class="v">${v}</span></li>`).join('') ;
+    $('rpCmpTitle').textContent = `${p.retAge}세 은퇴 성공 확률 비교 · ${PF.byId(p.pfId).name}`;
+    renderRpCmp();
+  }
+  function renderRpCmp() {
+    const { p } = last; if (!p.rpOn || !last.target.rp) return;
+    const c = mc?.rp || {};
+    const cur = p.rp.midOn ? 'mid' : 'with';
+    const items = [['none', '퇴직금 없이'], ['with', '퇴직금 포함']];
+    if (p.rpType !== 'db') items.push(['mid', `집 살 때 중간에 꺼내면${p.rp.midOn ? '' : ` (${p.rpType === 'dc' ? fmt(p.midAmount, true) + ', ' : ''}${p.midAge}세)`}`]);
+    $('rpCmp').innerHTML = items.map(([k, label]) => { const v = c[k]; return `<li><span class="k">${label}${k === cur ? '<span class="rowtag">지금 설정</span>' : ''}</span><span class="v c-${tone(v ?? null)}">${v == null ? '…' : pct(v)}</span></li>`; }).join('');
+  }
+
   // ---------- 그래프 ----------
   const markers = {
     id: 'markers',
@@ -551,7 +647,7 @@ footer.site a { color: var(--ink-2); }
   const noChart = () => typeof Chart === 'undefined';
   const colors = () => ({ s1: css('--s1'), s2: css('--s2'), s3: css('--s3'), s4: css('--s4'), s7: css('--s7'), sp: css('--s-principal'), crit: css('--crit'), ink: css('--ink'), ink2: css('--ink-2'), surf: css('--surface') });
   function markerLines(p, s, C, withDep) {
-    const L = [{ age: p.retAge, label: `은퇴 ${p.retAge}세`, color: C.ink2 }];
+    const L = [{ age: p.retAge, label: `은퇴 ${p.retAge}세${s.rp ? ` · 퇴직금 +${fmt(s.rp.gross / defl(p, p.retAge - p.curAge))}` : ''}`, color: C.ink2 }];
     if (p.mode === 'acct' && p.retAge < 55) L.push({ age: 55, label: '연금계좌 55세', color: C.s3, row: 1 });
     if (p.pension > 0 && p.pensionAge > p.retAge) L.push({ age: p.pensionAge, label: `국민연금 ${p.pensionAge}세`, color: C.s7, row: 2 });
     if (withDep && s.depletedAge != null) L.push({ age: s.depletedAge, label: `바닥 ${s.depletedAge}세`, color: C.crit, row: 3, dash: [2, 3] });
@@ -722,6 +818,15 @@ footer.site a { color: var(--ink-2); }
         mc.age80 = lo;
       } else mc.age80 = null;
       renderAnswer();
+      if (p.rpOn && m.target.rp) {
+        const W = [wOf(p.pfId), wOf(p.postId)];
+        mc.rp = {};
+        mc.rp[p.rp.midOn ? 'mid' : 'with'] = main.prob;
+        mc.rp.none = (await evalPaths({ ...p, rp: { ...p.rp, on: false } }, p.retAge, W[0], W[1], paths, tk)).prob; renderRpCmp();
+        if (p.rp.midOn) mc.rp.with = (await evalPaths({ ...p, rp: { ...p.rp, midOn: false } }, p.retAge, W[0], W[1], paths, tk)).prob;
+        else if (p.rpType !== 'db' && p.midAge > p.hireAge && p.midAge < p.retAge) mc.rp.mid = (await evalPaths({ ...p, rp: { ...p.rp, midOn: true } }, p.retAge, W[0], W[1], paths, tk)).prob;
+        renderRpCmp();
+      }
       for (const x of PF.PRESETS) {
         if (x.id === p.pfId) continue;
         const q = { ...params(x.id), mode: p.mode };
@@ -743,6 +848,11 @@ footer.site a { color: var(--ink-2); }
     if (e.target.matches('select, [type=checkbox]')) run();
   });
   $('saferAfter').addEventListener('change', run);
+  const rpCard = $('rpBody').closest('.card');
+  rpCard.addEventListener('input', (e) => { if (e.target.id === 'salary2') $('salary').value = e.target.value; if (e.target.matches('input[type=number]')) later(); });
+  rpCard.addEventListener('change', (e) => { if (e.target.type === 'checkbox') run(); });
+  rpCard.addEventListener('click', (e) => { const b = e.target.closest('[data-rptype]'); if (!b) return; state.rpType = b.dataset.rptype; run(); });
+  $('salary').addEventListener('input', () => { $('salary2').value = $('salary').value; });
   $('pfgrid').addEventListener('click', (e) => { const b = e.target.closest('[data-pf]'); if (!b) return; state.pf = b.dataset.pf; run(); });
   document.querySelectorAll('[data-money-mode]').forEach(b => b.addEventListener('click', () => {
     view.money = b.dataset.moneyMode;

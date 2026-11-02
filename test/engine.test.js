@@ -86,3 +86,33 @@ test('수익률 경로가 상수면 고정 수익률과 같은 결과', () => {
   const s1 = E.simulateSimple({ ...p, assets: 7000, monthly: 155, fee: 0 }, 55), s2 = E.simulateSimple({ ...p, assets: 7000, monthly: 155, fee: 0, path }, 55);
   near(s1.endAssets, s2.endAssets, 1e-6);
 });
+
+test('퇴직소득세: 퇴직금 1억, 근속 20년', () => {
+  // 근속연수공제 1500+250×10=4000 → 환산 (10000−4000)×12/20=3600 → 공제 800+2800×0.6=2480 → 과표 1120
+  // 1120×6%=67.2 → ×20/12=112 → 지방세 포함 123.2
+  near(E.retirementTax(10000, 20), 123.2, 0.01);
+});
+test('퇴직소득세: 퇴직금 3억, 근속 30년', () => {
+  // 공제 4000+300×10=7000 → 환산 (30000−7000)×12/30=9200 → 공제 4520+2200×0.55=5730 → 과표 3470
+  // 3470×15%−126=394.5 → ×30/12=986.25 → ×1.1=1084.875
+  near(E.retirementTax(30000, 30), 1084.875, 0.01);
+});
+test('DB형: 마지막 연봉/12 × 근속연수, 중간정산은 근속 리셋', () => {
+  const p = { ...base, curAge: 35, salary: 6000, rp: { on: true, type: 'severance', hireAge: 30, wageGrowth: 0 } };
+  near(E.retirePay(p, 55, 0).gross, 500 * 25);
+  const m = E.retirePay({ ...p, rp: { ...p.rp, midOn: true, midAge: 40 } }, 55, 0);
+  near(m.midPay, 500 * 10); near(m.gross, 500 * 15);
+  near(E.retirePay({ ...p, rp: { ...p.rp, type: 'db', midOn: true, midAge: 40 } }, 55, 0).gross, 500 * 25); // DB는 중도인출 불가
+});
+test('DC형: 수익 0이면 잔액 + 연봉/12 × 남은 연수', () => {
+  const p = { ...base, curAge: 35, salary: 6000, retPre: 0, rp: { on: true, type: 'dc', hireAge: 30, wageGrowth: 0, dcBalance: 3000 } };
+  near(E.retirePay(p, 45, 0).gross, 3000 + 500 * 10);
+  near(E.retirePay({ ...p, rp: { ...p.rp, midOn: true, midAge: 40, midAmount: 2000 } }, 45, 0).gross, 3000 + 500 * 10 - 2000);
+});
+test('퇴직금이 은퇴 시점 자산에 더해짐 (간편: 세금 70%만 차감)', () => {
+  const p = { ...base, curAge: 50, endAge: 52, assets: 0, monthly: 0, expense: 1, salary: 6000, rp: { on: true, type: 'db', hireAge: 30, wageGrowth: 0 } };
+  const r = E.simulateSimple(p, 51), rp = E.retirePay(p, 51, 0);
+  near(r.assetsAtRet, rp.gross - rp.tax * 0.7);
+  const a = E.simulateAccounts(p, 51, { gen: 0, isa: 0, sav: 0, irp: 0 });
+  near(a.atRet.irp, rp.gross);
+});
