@@ -28,10 +28,11 @@
   ];
 
   const PRESETS = [
-    { id: 'aggressive', name: '공격형', level: 4, tag: '주식 100% · S&P 500 + 나스닥', w: { SPY: 50, QQQ: 50 } },
-    { id: 'growth',     name: '성장형', level: 3, tag: '주식 80% · 배당주와 국채 일부', w: { SPY: 60, SCHD: 20, IEF: 20 } },
-    { id: 'balanced',   name: '균형형', level: 2, tag: '주식 50% · 국채와 금으로 분산', w: { SPY: 35, SCHD: 15, IEF: 35, GLD: 15 } },
-    { id: 'stable',     name: '안정형', level: 1, tag: '주식 30% · 국채·현금 중심', w: { SPY: 20, SCHD: 10, IEF: 40, SGOV: 20, GLD: 10 } },
+    { id: 'aggressive', name: '공격형', level: 4, next: 'growth',   tag: '주식 100% · S&P 500 + 나스닥', w: { SPY: 50, QQQ: 50 } },
+    { id: 'growth',     name: '성장형', level: 3, next: 'balanced', tag: '주식 80% · 배당주와 국채 일부', w: { SPY: 60, SCHD: 20, IEF: 20 } },
+    { id: 'balanced',   name: '균형형', level: 2, next: 'stable',   tag: '주식 50% · 국채와 금으로 분산', w: { SPY: 35, SCHD: 15, IEF: 35, GLD: 15 } },
+    { id: 'stable',     name: '안정형', level: 1, next: 'stable',   tag: '주식 30% · 국채·현금 중심', w: { SPY: 20, SCHD: 10, IEF: 40, SGOV: 20, GLD: 10 } },
+    { id: 'dividend',   name: '배당형', level: 3, next: 'balanced', tag: '주식 80% · 배당주 중심, 분배금으로 생활비를 받는 구조', w: { SCHD: 80, IEF: 20 } },
   ];
 
   const n = ASSETS.length;
@@ -96,7 +97,7 @@
   }
 
   const api = { SOURCE, ASSETS, PRESETS, C, stats, assetPaths, portfolioPath, weightsVec, byId: (id) => PRESETS.find(p => p.id === id),
-    safer: (id) => { const i = PRESETS.findIndex(p => p.id === id); return PRESETS[Math.min(i + 1, PRESETS.length - 1)].id; } };
+    safer: (id) => (PRESETS.find(p => p.id === id) || {}).next || id };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.RetirePortfolio = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
