@@ -349,6 +349,7 @@ footer.site a { color: var(--ink-2); }
         <li><b>ISA·연금저축·IRP</b>: 국내 상장 해외 ETF로 같은 자산에 투자한다고 봅니다. 운용 중 세금 없음.</li>
         <li><b>ISA</b>: 연 2,000만원 납입. 만기 시 순이익 중 일반형 200만·서민형 400만원 비과세, 초과분 9.9%. 만기 후 연금저축으로 옮기면 이전액의 10%(최대 300만원)를 추가로 세액공제 대상에 넣습니다.</li>
         <li><b>연금저축·IRP</b>: 합산 연 1,800만원 납입, 세액공제 대상은 합산 900만원(연금저축은 600만원까지). 공제율은 총급여 5,500만원 이하 16.5%, 초과 13.2%.</li>
+        <li><b>공제 한도를 넘는 연금 납입</b>: 연 900만원을 넘겨 1,800만원까지 넣은 돈은 세액공제는 없지만 비과세 원금으로 따로 추적합니다. 이 원금은 언제든 세금 없이 꺼낼 수 있고(55세 전 포함), 여기서 생긴 운용수익만 연금으로 받을 때 과세합니다. 다음 해 이후 공제 대상으로 전환 신청하는 제도는 반영하지 않았습니다.</li>
         <li><b>연금 수령</b>: 55세부터 연금수령한도(<code>평가액 ÷ (11 − 수령연차) × 120%</code>) 안에서 나이에 따라 5.5%·4.4%·3.3%. 한 해 1,500만원을 넘으면 그 해 전체 16.5% 분리과세. 한도를 넘거나 55세 전에 꺼내면 16.5%.</li>
         <li><b>꺼내는 순서</b>: 55세 전에는 일반계좌 → ISA → (모자라면) 연금계좌. 55세부터는 연금 저율 구간 → 일반계좌 → ISA → 연금 나머지.</li>
       </ul>
@@ -496,6 +497,7 @@ footer.site a { color: var(--ink-2); }
         { k: 'A', name: '일반계좌만', sub: '절세 계좌 안 씀' },
         { k: 'B', name: '연금 먼저', sub: '연금 연 900만 채우고 나머지 일반' },
         { k: 'C', name: '연금 + ISA', sub: '연금 900만 → ISA → 일반' },
+        { k: 'D', name: '연금 최대', sub: '연금 1,800만 → 나머지 일반' },
         { k: 'U', name: '지금 내 배분', sub: '위에 입력한 대로' },
       ].map(x => {
         const a = E.scenarioAlloc(x.k, M, a0), o = x.k === 'C' ? { isaMode: 'pension' } : {};
@@ -704,6 +706,7 @@ footer.site a { color: var(--ink-2); }
     const rate = p.salary <= E.TAX.creditSalaryThreshold ? 16.5 : 13.2, pen = (p.mSav + p.mIrp) * 12, elig = Math.min(Math.min(p.mSav * 12, 600) + p.mIrp * 12, 900);
     const msgs = [`연금에 연 ${fmt(pen, true)} → 세액공제 약 ${fmt(elig * rate / 100, true)}/년 (공제율 ${rate}%).`];
     if (pen < 900) msgs.push(`월 ${fmt(75 - p.mSav - p.mIrp, true)} 더 넣으면 공제를 다 받습니다.`);
+    if (pen > 900) msgs.push(`공제 한도를 넘는 연 ${fmt(Math.min(pen, 1800) - elig, true)}은 공제는 없지만, 운용수익에 세금이 붙지 않다가 연금으로 받을 때 3.3~5.5%만 내고, 이 원금은 연금저축에서 언제든 세금 없이 꺼낼 수 있어요.`);
     if (pen > 1800) msgs.push('연금 연 1,800만원 초과분은 일반계좌로 갑니다.');
     if (p.mIsa * 12 > 2000) msgs.push('ISA 연 2,000만원 초과분은 일반계좌로 갑니다.');
     $('limitHint').textContent = msgs.join(' ');
@@ -722,7 +725,7 @@ footer.site a { color: var(--ink-2); }
       if (val) { const v = scen.map(val).filter(x => x != null); if (new Set(v.map(Math.round)).size > 1) best = hi ? Math.max(...v) : Math.min(...v); }
       return `<tr><td>${lbl}</td>${scen.map(s => `<td class="${best != null && val(s) != null && Math.round(val(s)) === Math.round(best) ? 'best' : ''}">${cell(s)}</td>`).join('')}</tr>`;
     }).join('');
-    const A = scen[0], B = scen.reduce((x, y) => y.after > x.after ? y : x), U = scen[3];
+    const A = scen[0], B = scen.reduce((x, y) => y.after > x.after ? y : x), U = scen.find(s => s.k === 'U');
     let t = `같은 돈이라도 <b>${B.name}</b> 방식으로 나누면 ${p.retAge}세 세후 자산이 일반계좌만 쓸 때보다 <b>${fmt(B.after - A.after, true)}</b> 많아요(오늘 물가 기준).`;
     if (B !== U) t += ` 지금 배분은 일반계좌만 쓸 때보다 ${fmt(U.after - A.after, true)} 많습니다.`;
     if (p.retAge < 55) t += ` 다만 ${p.retAge}세에 은퇴하면 연금계좌 돈은 55세까지 꺼내기 어려워, 그 사이는 일반계좌·ISA로 버텨야 합니다.`;

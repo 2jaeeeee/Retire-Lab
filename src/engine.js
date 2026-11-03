@@ -48,7 +48,7 @@
   // 평균임금 ≈ 연봉/12. 연봉은 매년 wageGrowth만큼 오름. DC는 매년 연봉/12를 연말에 적립하고 같은 포트폴리오로 운용.
   function retirePay(p, retAge, feePct) {
     const rp = p.rp;
-    if (!rp || !rp.on || retAge <= p.curAge) return null;
+    if (!rp || !rp.on || retAge < p.curAge) return null;   // 지금 퇴직(retAge = curAge)해도 퇴직금은 받음
     const wg = (rp.wageGrowth || 0) / 100, wage = (age) => p.salary * Math.pow(1 + wg, age - p.curAge);
     const hire = Math.min(rp.hireAge, p.curAge);
     const mid = rp.midOn && rp.type !== 'db' && rp.midAge > hire && rp.midAge < retAge ? rp.midAge : null;
@@ -65,7 +65,7 @@
     } else {
       let start = hire;
       if (mid != null) { if (!past) { midPay = wage(mid - 1) / 12 * (mid - hire); midTax = retirementTax(midPay, mid - hire); } start = mid; }
-      gross = wage(retAge - 1) / 12 * (retAge - start); years = retAge - start;
+      gross = wage(Math.max(retAge - 1, p.curAge)) / 12 * (retAge - start); years = retAge - start;
     }
     const tax = retirementTax(gross, years);
     return { gross, tax, taxPension: tax * RET.pensionCut10, years, midPay, midTax, midAge: mid, midPast: past, type: rp.type };
@@ -259,7 +259,11 @@
         const div = s.gen.v * dy / 12, wh = div * TAX.usDivWithholding;
         s.gen.v = s.gen.v * (1 + r) - wh; s.gen.basis += div - wh; tot.taxDiv += wh; row.tax += wh; row.genDiv += div;
         s.isa.v *= 1 + r;
-        for (const a of [s.sav, s.irp]) a.T += pv(a) * r;
+        for (const a of [s.sav, s.irp]) {
+          a.T += pv(a) * r;
+          // 평가손실이 운용수익(T)보다 크면 비공제 원금(N) → 이연퇴직소득(D) 순으로 줄인다 (잔액이 음수가 되지 않게)
+          if (a.T < 0) { a.N += a.T; a.T = 0; if (a.N < 0) { a.D += a.N; a.N = 0; if (a.D < 0) { a.T += a.D; a.D = 0; } } }
+        }
         row.growth += total() - before + wh;
       }
 
@@ -332,6 +336,9 @@
       case 'A': return { gen: M, isa: 0, sav: 0, irp: 0 };
       case 'B': return { gen: M - sav - irp, isa: 0, sav, irp };
       case 'C': { const isa = Math.min(M - sav - irp, TAX.isaAnnualLimit / 12); return { gen: M - sav - irp - isa, isa, sav, irp }; }
+      case 'D': { // 연금 납입 한도(1,800만)까지: IRP는 공제 채우는 300만, 나머지는 중도인출이 자유로운 연금저축
+        const irpD = Math.min(M, (TAX.pensionCreditCap - TAX.savingsCreditCap) / 12), savD = Math.min(M - irpD, (TAX.pensionAnnualLimit - (TAX.pensionCreditCap - TAX.savingsCreditCap)) / 12);
+        return { gen: M - savD - irpD, isa: 0, sav: savD, irp: irpD }; }
       default: return { ...user };
     }
   }

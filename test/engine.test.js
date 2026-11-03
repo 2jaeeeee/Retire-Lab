@@ -116,3 +116,10 @@ test('퇴직금이 은퇴 시점 자산에 더해짐 (간편: 세금 70%만 차�
   const a = E.simulateAccounts(p, 51, { gen: 0, isa: 0, sav: 0, irp: 0 });
   near(a.atRet.irp, rp.gross);
 });
+
+test('지금 바로 퇴직해도 퇴직금은 받음', () => {
+  const p = { ...base, curAge: 40, endAge: 60, assets: 0, monthly: 0, expense: 10, salary: 6000, rp: { on: true, type: 'db', hireAge: 30, wageGrowth: 0 } };
+  const rp = E.retirePay(p, 40, 0);
+  near(rp.gross, 500 * 10);
+  near(E.simulateSimple(p, 40).assetsAtRet, rp.gross - rp.tax * 0.7);
+});

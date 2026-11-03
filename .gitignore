@@ -2,3 +2,5 @@ dist/
 *.zip
 node_modules/
 *.png
+verify/cases.json
+verify/*.png

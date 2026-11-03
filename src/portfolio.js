@@ -35,9 +35,14 @@
   ];
 
   const n = ASSETS.length;
-  // 산술평균 기대수익률 (compound + σ²/2 근사, 소수)
-  const arith = ASSETS.map(a => a.ret / 100 + Math.pow(a.vol / 100, 2) / 2);
   const vols = ASSETS.map(a => a.vol / 100);
+  // 연수익률을 로그정규분포로 본다: ln(1+R) ~ N(mu, s²).
+  // mu = ln(1 + 기대 연복리)로 두어, 시뮬레이션의 중앙 연복리가 표시하는 기대수익률과 정확히 같게 맞춘다.
+  // s는 산술 변동성이 vol이 되도록 고정점 반복으로 구한다.
+  const logM = ASSETS.map(a => Math.log(1 + a.ret / 100));
+  const logS = ASSETS.map((a, i) => { let s2 = 0; for (let k = 0; k < 50; k++) { const m = Math.exp(logM[i] + s2 / 2); s2 = Math.log(1 + Math.pow(vols[i] / m, 2)); } return Math.sqrt(s2); });
+  // 산술평균 기대수익률 (소수) = E[R]
+  const arith = ASSETS.map((a, i) => Math.exp(logM[i] + logS[i] * logS[i] / 2) - 1);
 
   function weightsVec(w) { const v = new Array(n).fill(0); let s = 0; for (const k in w) { v[IDX[k]] = w[k]; s += w[k]; } return v.map(x => x / s); }
 
@@ -47,9 +52,9 @@
     let m = 0, varp = 0, div = 0;
     for (let i = 0; i < n; i++) { m += x[i] * arith[i]; div += x[i] * ASSETS[i].div; for (let j = 0; j < n; j++) varp += x[i] * x[j] * vols[i] * vols[j] * C[i][j]; }
     const vol = Math.sqrt(varp);
-    const compound = m - varp / 2;
     // 로그정규 근사로 '20년에 한 번 꼴의 나쁜 해'(하위 5%) 수익률
     const s2 = Math.log(1 + varp / Math.pow(1 + m, 2)), mu = Math.log(1 + m) - s2 / 2;
+    const compound = Math.exp(mu) - 1;   // 중앙 연복리 (자산별 정의와 같은 로그정규 기준)
     const bad = Math.exp(mu - 1.645 * Math.sqrt(s2)) - 1;
     return { ret: compound * 100, arith: m * 100, vol: vol * 100, div, bad: bad * 100 };
   }
@@ -64,9 +69,6 @@
     return L;
   }
   const L = cholesky(C);
-  // 로그수익률 파라미터
-  const logS = ASSETS.map((a, i) => Math.sqrt(Math.log(1 + Math.pow(vols[i], 2) / Math.pow(1 + arith[i], 2))));
-  const logM = ASSETS.map((a, i) => Math.log(1 + arith[i]) - logS[i] * logS[i] / 2);
 
   function rng(seed) { // mulberry32
     let t = seed >>> 0;
