@@ -415,6 +415,7 @@ footer.site a { color: var(--ink-2); }
 
   // ---------- 입력 ----------
   function apply(p) {
+    ['bGen', 'bIsa', 'bSav', 'bIrp'].forEach(k => { if (p[k] == null || !isFinite(p[k])) p[k] = 0; });
     NUM.forEach(k => { $(k).value = p[k]; });
     $('fee').value = p.useAcct ? p.feeAcct : p.fee;
     $('saferAfter').checked = !!p.saferAfter; $('useAcct').checked = !!p.useAcct; $('refundReinvest').checked = !!p.refundReinvest;
@@ -842,6 +843,17 @@ footer.site a { color: var(--ink-2); }
   // ---------- 이벤트 ----------
   let timer;
   const later = () => { clearTimeout(timer); timer = setTimeout(run, 350); };
+  // 절세 계좌 '지금 잔액': 비우면 0, 0인 상태에서 숫자를 치면 0을 지우고 그 숫자로
+  ['bGen', 'bIsa', 'bSav', 'bIrp'].forEach(id => {
+    const el = $(id);
+    el.addEventListener('focus', () => { if (el.value === '0') el.select(); });
+    el.addEventListener('input', () => {
+      const v = el.value;
+      if (v === '' && !(el.validity && el.validity.badInput)) { el.value = '0'; el.select(); }
+      else if (/^0+\d/.test(v)) el.value = v.replace(/^0+(?=\d)/, '');
+    });
+    el.addEventListener('blur', () => { if (el.value.trim() === '') el.value = '0'; });
+  });
   $('form').addEventListener('input', later);
   $('form').addEventListener('submit', (e) => { e.preventDefault(); run(); });
   const acctPanel = document.querySelector('[data-panel="acct"]');
