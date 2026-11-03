@@ -6,9 +6,9 @@
   // 변동성·상관관계: J.P. Morgan 2026 LTCMA 매트릭스. 기관 전망에 없는 자산은 근거를 note에 적음.
   const SOURCE = { name: 'J.P. Morgan Long-Term Capital Market Assumptions', returns: '2027년판 (2026-10 발표)', risk: '2026년판 매트릭스', horizon: '향후 10~15년' };
   const ASSETS = [
-    { id: 'SPY',  name: 'S&P 500',        kind: '미국 대형주',       ret: 7.5, vol: 16.5, div: 1.2, note: 'JPM 2027 미국 대형주 7.5%' },
-    { id: 'QQQ',  name: '나스닥 100',      kind: '미국 기술·성장주',  ret: 7.5, vol: 22.0, div: 0.6, note: '기관 전망에 별도 수치 없음. 기술주 밸류에이션 부담(JPM)을 감안해 대형주와 같은 수익률, 과거 수준의 높은 변동성 적용' },
-    { id: 'SCHD', name: '미국 배당성장주',  kind: '배당주',           ret: 7.5, vol: 15.0, div: 3.8, note: '기관 전망에 별도 수치 없음. 대형주와 같은 수익률, 과거 실적 수준의 변동성 적용' },
+    { id: 'SPY',  equity: true, name: 'S&P 500',        kind: '미국 대형주',       ret: 7.5, vol: 16.5, div: 1.2, note: 'JPM 2027 미국 대형주 7.5%' },
+    { id: 'QQQ',  equity: true, name: '나스닥 100',      kind: '미국 기술·성장주',  ret: 7.5, vol: 22.0, div: 0.6, note: '기관 전망에 별도 수치 없음. 기술주 밸류에이션 부담(JPM)을 감안해 대형주와 같은 수익률, 과거 수준의 높은 변동성 적용' },
+    { id: 'SCHD', equity: true, name: '미국 배당성장주',  kind: '배당주',           ret: 7.5, vol: 15.0, div: 3.8, note: '기관 전망에 별도 수치 없음. 대형주와 같은 수익률, 과거 실적 수준의 변동성 적용' },
     { id: 'IEF',  name: '미국 중기국채',    kind: '7~10년 국채',       ret: 4.6, vol: 6.5,  div: 3.8, note: 'JPM 2027 미국 중기국채 4.6%. 변동성은 7~10년 만기 수준' },
     { id: 'TLT',  name: '미국 장기국채',    kind: '20년+ 국채',        ret: 4.3, vol: 13.0, div: 4.4, note: 'JPM 2026 미국 장기국채 4.3% (2027년판 수치 미확인)' },
     { id: 'SGOV', name: '미국 초단기국채',  kind: '0~3개월 국채(현금성)', ret: 3.2, vol: 0.7, div: 3.2, note: 'JPM 2027 미국 현금 3.2%' },
@@ -49,14 +49,14 @@
   // 포트폴리오 기대값 (연 1회 리밸런싱 가정)
   function stats(w) {
     const x = weightsVec(w);
-    let m = 0, varp = 0, div = 0;
-    for (let i = 0; i < n; i++) { m += x[i] * arith[i]; div += x[i] * ASSETS[i].div; for (let j = 0; j < n; j++) varp += x[i] * x[j] * vols[i] * vols[j] * C[i][j]; }
+    let m = 0, varp = 0, div = 0, divUS = 0;
+    for (let i = 0; i < n; i++) { m += x[i] * arith[i]; div += x[i] * ASSETS[i].div; if (ASSETS[i].equity) divUS += x[i] * ASSETS[i].div; for (let j = 0; j < n; j++) varp += x[i] * x[j] * vols[i] * vols[j] * C[i][j]; }
     const vol = Math.sqrt(varp);
     // 로그정규 근사로 '20년에 한 번 꼴의 나쁜 해'(하위 5%) 수익률
     const s2 = Math.log(1 + varp / Math.pow(1 + m, 2)), mu = Math.log(1 + m) - s2 / 2;
     const compound = Math.exp(mu) - 1;   // 중앙 연복리 (자산별 정의와 같은 로그정규 기준)
     const bad = Math.exp(mu - 1.645 * Math.sqrt(s2)) - 1;
-    return { ret: compound * 100, arith: m * 100, vol: vol * 100, div, bad: bad * 100 };
+    return { ret: compound * 100, arith: m * 100, vol: vol * 100, div, divUS, bad: bad * 100 };
   }
 
   // 촐레스키 분해

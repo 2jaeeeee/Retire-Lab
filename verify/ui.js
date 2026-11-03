@@ -14,7 +14,7 @@ function params(st, pfId) {
   const p = { ...st, mode: st.useAcct ? 'acct' : 'simple' };
   if (p.mode === 'acct') { p.assets = p.bGen + p.bIsa + p.bSav + p.bIrp; p.monthly = p.mGen + p.mIsa + p.mSav + p.mIrp; }
   const postId = p.saferAfter ? PF.safer(pfId) : pfId, a = stat[pfId], b = stat[postId];
-  Object.assign(p, { pfId, postId, retPre: a.ret, divYield: a.div, retPost: b.ret, divYieldPost: b.div });
+  Object.assign(p, { pfId, postId, retPre: a.ret, divYield: a.div, retPost: b.ret, divYieldPost: b.div, divUS: a.divUS, divUSPost: b.divUS });
   p.rp = { on: p.rpOn, type: p.rpType, hireAge: p.hireAge, wageGrowth: p.wageGrowth, dcBalance: p.dcBalance == null ? NaN : p.dcBalance, midOn: p.midOn && p.rpType !== 'db', midAge: p.midAge, midAmount: p.midAmount };
   return p;
 }

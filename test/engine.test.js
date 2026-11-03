@@ -123,3 +123,29 @@ test('지금 바로 퇴직해도 퇴직금은 받음', () => {
   near(rp.gross, 500 * 10);
   near(E.simulateSimple(p, 40).assetsAtRet, rp.gross - rp.tax * 0.7);
 });
+
+test('연금계좌 안 해외주식 ETF 배당: 미국 원천징수 15%가 매년 빠짐', () => {
+  const p = { ...base, curAge: 40, endAge: 42, retPre: 0, bSav: 10000, divUS: 2.4 };
+  const r = E.simulateAccounts(p, 42, { gen: 0, isa: 0, sav: 0, irp: 0 });
+  near(r.rows[0].sav, 10000 * Math.pow(1 - 0.024 / 12 * 0.15, 12), 0.01);
+});
+test('이연퇴직소득: 실제 수령 21년차부터 퇴직소득세 50%만 과세', () => {
+  expect50: {
+    const p = { ...base, curAge: 55, endAge: 80, expense: 30, salary: 12000, retPre: 0, retPost: 0, rp: { on: true, type: 'db', hireAge: 25, wageGrowth: 0 } };
+    const r = E.simulateAccounts(p, 55, { gen: 0, isa: 0, sav: 0, irp: 0 });
+    const tD = r.rp.tax / r.rp.gross, w = r.rows[22];   // 77세 = 수령 23년차
+    near(w.tax, w.wPen * tD * 0.5, 0.01);
+  }
+});
+
+test('연금소득공제: 2,100만원 → 700만원, 한도 900만원', () => {
+  near(E.pensionDeduction(2100), 700); near(E.pensionDeduction(1e6), 900); near(E.pensionDeduction(300), 300);
+});
+test('사적연금 1,500만원 초과: 종합과세가 싸면 종합과세 선택', () => {
+  // 연 2,100만원 연금만: 종합 = (2100-700-150)=1250 × 6% × 1.1 = 82.5 vs 분리 2100×16.5% = 346.5
+  near(E.pensionCompTax(2100), 82.5);
+  const p = { ...base, curAge: 66, endAge: 67, expense: 2100 / 12 / (1 - 0.055), bSav: 30000, inflation: 0 };   // 66세: 12년차 → 한도 없음
+  const r = E.simulateAccounts(p, 66, { gen: 0, isa: 0, sav: 0, irp: 0 });
+  assert.ok(r.rows[0].compTax);
+  assert.ok(r.totals.taxPen < r.rows[0].wPen * 0.165 * 0.6);
+});

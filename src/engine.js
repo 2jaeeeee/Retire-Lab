@@ -25,14 +25,22 @@
     foreignCgRate: 0.22,
     foreignCgDeduction: 250,
     usDivWithholding: 0.15,
+    fundForeignWHT: 0.15,          // 연금·ISA 안 국내상장 해외주식 ETF: 미국 배당 원천징수 15%가 펀드 단계에서 빠짐. 연금계좌는 쌓아뒀다가 인출 때 그 해 세금 한도 안에서 공제(2026.7~), ISA는 미반영
     financialIncomeThreshold: 2000,
   };
 
+  // 종합소득세(기본세율, 지방세 포함). 만원 단위 과세표준.
+  const BRACKETS = [[1400, .06, 0], [5000, .15, 126], [8800, .24, 576], [15000, .35, 1544], [30000, .38, 1994], [50000, .40, 2594], [100000, .42, 3594], [Infinity, .45, 6594]];
+  const progressiveTax = (base) => { if (!(base > 0)) return 0; const [, r, d] = BRACKETS.find(b => base <= b[0]); return Math.max(0, base * r - d) * 1.1; };
+  // 연금소득공제(공적+사적 합산, 한도 900만원)
+  const pensionDeduction = (x) => Math.min(900, x <= 350 ? x : x <= 700 ? 350 + (x - 350) * 0.4 : x <= 1400 ? 490 + (x - 700) * 0.2 : 630 + (x - 1400) * 0.1);
+  // 연금소득만 있는 사람의 종합소득세 (본인 기본공제 150만원)
+  const pensionCompTax = (x) => progressiveTax(x - pensionDeduction(x) - 150);
   const mrate = (annualPct, feePct) => Math.pow(1 + (annualPct - feePct) / 100, 1 / 12) - 1;
 
   // ---------- 퇴직금 ----------
   // 퇴직소득세 (지방소득세 포함). 근속연수공제는 2023년 개정 기준, 1년 미만 끝수는 1년으로 봄.
-  const RET = { pensionCut10: 0.7, pensionCutAfter: 0.6 };   // IRP에서 연금으로 받으면 10년차까지 70%, 이후 60%만 과세
+  const RET = { pensionCut10: 0.7, pensionCutAfter: 0.6, pensionCut20: 0.5 };   // IRP에서 연금으로 받으면 실제 수령 10년차까지 70%, 20년차까지 60%, 그 뒤 50%만 과세(2026~)
   function retirementTax(amount, years) {
     if (!(amount > 0) || !(years > 0)) return 0;
     const Y = Math.max(1, Math.ceil(years - 1e-9));
@@ -131,7 +139,9 @@
       irp: { N: 0, D: 0, tD: 0, dAge: 0, T: p.bIrp, lim: Infinity, used: 0 },
     };
     let principal = p.bGen + p.bIsa + p.bSav + p.bIrp;
-    const tot = { credit: 0, taxDiv: 0, taxCg: 0, taxIsa: 0, taxPen: 0, taxEarly: 0, taxRet: 0 };
+    const tot = { credit: 0, taxDiv: 0, taxCg: 0, taxIsa: 0, taxPen: 0, taxEarly: 0, taxRet: 0, taxForeign: 0 };
+    const usPre = (p.divUS || 0) / 100, usPost = (p.divUSPost ?? p.divUS ?? 0) / 100;
+    let foreignPool = 0;   // 연금계좌에서 낸 해외 원천징수 누적 (인출 시 공제 대상)
     const rp = retirePay(p, retAge, p.feeAcct);
     let depletedAge = null, atRet = null, earlyPensionUsed = false, finIncomeWarn = false;
     const rows = [];
@@ -152,7 +162,7 @@
       if (age === retAge || (y === 0 && retAge <= p.curAge)) atRet = snap();
       const row = { age, retired, contrib: 0, credit: 0, tax: 0, expense: 0, nps: 0, npsUsed: 0, wGen: 0, wIsa: 0, wPen: 0, shortfall: 0, growth: 0, genDiv: 0 };
       const rM = p.path ? mrate(p.path[y], p.feeAcct) : retired ? rPost : rPre, dy = retired ? dyPost : dyPre;
-      const yr = { pen: 0, sav: 0, irp: 0, isa: 0, realized: 0, penIncT: 0, lowT: 0, lowRate: TAX.pensionTaxRate(age), credit: 0 };
+      const yr = { penTax: 0, pen: 0, sav: 0, irp: 0, isa: 0, realized: 0, penIncT: 0, lowT: 0, lowRate: TAX.pensionTaxRate(age), credit: 0 };
       if (age >= TAX.pensionAgeMin) {
         const k = age - TAX.pensionAgeMin + 1;
         for (const a of [s.sav, s.irp]) { a.lim = k <= 10 ? pv(a) / (11 - k) * 1.2 : Infinity; a.used = 0; }
@@ -189,9 +199,9 @@
           const nTake = Math.min(a.N, net, Math.max(0, a.lim - a.used));
           a.N -= nTake; a.used += nTake; got += nTake; row.wPen += nTake;
           if (a.D > 0 && net - got > 1e-9) {   // 이연퇴직소득: 연금수령 시 퇴직소득세의 70%(11년차부터 60%)
-            const tr = a.tD * (age - a.dAge < 10 ? RET.pensionCut10 : RET.pensionCutAfter);
+            const n = age - a.dAge, tr = a.tD * (n < 10 ? RET.pensionCut10 : n < 20 ? RET.pensionCutAfter : RET.pensionCut20);
             const g2 = Math.min(a.D, Math.max(0, a.lim - a.used), (net - got) / (1 - tr));
-            if (g2 > 0) { const tx = g2 * tr; a.D -= g2; a.used += g2; got += g2 - tx; tot.taxRet += tx; row.tax += tx; row.wPen += g2; }
+            if (g2 > 0) { const tx = g2 * tr; a.D -= g2; a.used += g2; got += g2 - tx; tot.taxRet += tx; row.tax += tx; row.wPen += g2; yr.penTax += tx; }
           }
           const r = yr.lowRate;
           const room = Math.min(Math.max(0, a.lim - a.used), Math.max(0, TAX.pensionSeparateThreshold - yr.penIncT));
@@ -199,7 +209,7 @@
           if (gross > 0) {
             const tax = gross * r;
             a.T -= gross; a.used += gross; yr.penIncT += gross; yr.lowT += gross;
-            got += gross - tax; tot.taxPen += tax; row.tax += tax; row.wPen += gross;
+            got += gross - tax; tot.taxPen += tax; row.tax += tax; row.wPen += gross; yr.penTax += tax;
           }
           return got;
         }
@@ -208,7 +218,7 @@
         if (!early) a.used += nTake;
         if (a.D > 0 && net - got > 1e-9) {     // 연금외수령(55세 전·한도 초과): 퇴직소득세 전액
           const g2 = Math.min(a.D, (net - got) / (1 - a.tD));
-          if (g2 > 0) { const tx = g2 * a.tD; a.D -= g2; got += g2 - tx; tot.taxRet += tx; row.tax += tx; row.wPen += g2; if (!early) a.used += g2; }
+          if (g2 > 0) { const tx = g2 * a.tD; a.D -= g2; got += g2 - tx; tot.taxRet += tx; row.tax += tx; row.wPen += g2; if (!early) a.used += g2; yr.penTax += tx; }
         }
         const gross = Math.min(a.T, (net - got) / (1 - TAX.pensionHighRate));
         if (gross > 0) {
@@ -219,7 +229,7 @@
             yr.penIncT += within; a.used += gross;
             tot.taxPen += tax;
           }
-          a.T -= gross; got += gross - tax; row.tax += tax; row.wPen += gross;
+          a.T -= gross; got += gross - tax; row.tax += tax; row.wPen += gross; yr.penTax += tax;
         }
         return got;
       };
@@ -258,13 +268,17 @@
         const before = total();
         const div = s.gen.v * dy / 12, wh = div * TAX.usDivWithholding;
         s.gen.v = s.gen.v * (1 + r) - wh; s.gen.basis += div - wh; tot.taxDiv += wh; row.tax += wh; row.genDiv += div;
-        s.isa.v *= 1 + r;
+        const fw = (retired ? usPost : usPre) / 12 * TAX.fundForeignWHT;
+        const fIsa = s.isa.v * fw; s.isa.v = s.isa.v * (1 + r) - fIsa;
+        let fPen = 0;
         for (const a of [s.sav, s.irp]) {
-          a.T += pv(a) * r;
+          const f = pv(a) * fw; fPen += f;
+          a.T += pv(a) * r - f;
           // 평가손실이 운용수익(T)보다 크면 비공제 원금(N) → 이연퇴직소득(D) 순으로 줄인다 (잔액이 음수가 되지 않게)
           if (a.T < 0) { a.N += a.T; a.T = 0; if (a.N < 0) { a.D += a.N; a.N = 0; if (a.D < 0) { a.T += a.D; a.D = 0; } } }
         }
-        row.growth += total() - before + wh;
+        tot.taxForeign += fIsa + fPen; row.tax += fIsa + fPen; foreignPool += fPen;
+        row.growth += total() - before + wh + fIsa + fPen;
       }
 
       // --- 연말 정산 ---
@@ -297,8 +311,22 @@
       }
       const cgt = Math.max(0, yr.realized - TAX.foreignCgDeduction) * TAX.foreignCgRate;
       let extraTax = cgt;
-      if (yr.penIncT > TAX.pensionSeparateThreshold) extraTax += yr.lowT * (TAX.pensionHighRate - yr.lowRate);
-      if (extraTax > 0) {
+      let compRefund = 0;
+      if (yr.penIncT > TAX.pensionSeparateThreshold) {
+        // 1,500만원 초과: 16.5% 분리과세와 종합과세 중 적은 쪽을 고른다. 종합과세는 국민연금과 합산해 늘어나는 세금만 비교.
+        const sepTax = yr.penIncT * TAX.pensionHighRate;
+        const compTax = pensionCompTax(yr.penIncT + row.nps) - pensionCompTax(row.nps);
+        extraTax += yr.lowT * (TAX.pensionHighRate - yr.lowRate);
+        if (compTax < sepTax) { compRefund = sepTax - compTax; yr.compChosen = true; }
+      }
+      if (compRefund > 0) { extraTax -= compRefund; }
+      // 연금계좌 외국납부세액 공제: 그 해 연금계좌 인출에 붙은 세금 한도 안에서 돌려받음
+      const penTaxYear = Math.max(0, yr.penTax + (extraTax - cgt));
+      const fCredit = Math.min(foreignPool, penTaxYear);
+      if (fCredit > 0) { foreignPool -= fCredit; extraTax -= fCredit; tot.taxForeign -= fCredit; tot.taxPen += fCredit; row.foreignCredit = fCredit; }
+      if (extraTax < 0) { s.gen.v -= extraTax; s.gen.basis -= extraTax; tot.taxPen += extraTax; row.tax += extraTax; row.compTax = true; }
+      else if (extraTax > 0) {
+        if (compRefund > 0) row.compTax = true;
         tot.taxCg += cgt; tot.taxPen += extraTax - cgt; row.tax += extraTax;
         const got = withdraw(extraTax);
         if (got < extraTax - 1e-6) { row.shortfall += extraTax - got; if (depletedAge == null) depletedAge = age; }
@@ -343,7 +371,7 @@
     }
   }
 
-  const api = { TAX, RET, retirementTax, retirePay, simulateSimple, simulateAccounts, earliest, solveUp, bisect, scenarioAlloc };
+  const api = { TAX, RET, retirementTax, retirePay, progressiveTax, pensionDeduction, pensionCompTax, simulateSimple, simulateAccounts, earliest, solveUp, bisect, scenarioAlloc };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.RetireEngine = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

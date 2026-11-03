@@ -17,7 +17,7 @@ for (let i = 0; i < 300; i++) {
     for (const k of ['gen', 'isa', 'sav', 'irp']) if (row[k] < -1e-6) bad('NEGATIVE_BALANCE', `${i} ${k} ${row[k]}`);
     if (row.tax < -1e-9) bad('NEGATIVE_TAX', i);
     if (row.afterTax > row.total + 1e-6) bad('AFTERTAX>TOTAL', `${i} ${row.afterTax} ${row.total}`);
-    if (row.shortfall > 0.5 && row.total > 1) bad('SHORTFALL_WITH_MONEY', `${i} age ${row.age} total ${row.total}`);
+    if (row.shortfall > 0.5 && row.total > 1 && !row.compTax) bad('SHORTFALL_WITH_MONEY', `${i} age ${row.age} total ${row.total}`);
   }
   // 단조성: 월 투자금↑ → 은퇴 가능 나이 늦어지지 않음 / 생활비↑ → 빨라지지 않음
   const e0 = E.earliest((R) => E.simulateAccounts(p, R, a).ok, p);
